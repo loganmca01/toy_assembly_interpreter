@@ -1,0 +1,10 @@
+define mova rega {rega := AC;}
+define movm rega regb {(regb) := rega;}
+define add rega regb {AC := rega + regb;}
+define jmpz vara {PC := vara : AC == 0;}
+define call varb {(SP) := PC;
+             PC := varb;
+             SP := SP + 2;
+             (SP) := BP;
+             BP := SP;
+             SP := SP + 2;}
