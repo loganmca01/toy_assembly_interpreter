@@ -14,8 +14,8 @@ Register Transfer Notation:
 I designed this RTN to be as readable as possible for humans, as it's designed for use in classes. That being said, there are
 several restrictions on the syntax in this first version of the parser. The basic command structure looks like this:
 
-define [command name] [arguments] {[action 1]\n;
-                                   [action 2]\n;
+define [command name] [arguments] {[action 1];\n
+                                   [action 2];\n
                                    ... }
 
 The arguments are limited to dummy variables and registers of the form var[a-z] and reg[a-z]. This will eventually
