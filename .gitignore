@@ -3,6 +3,7 @@ instruction_set.tab.c
 instruction_set.tab.h
 instruction_set.lex.c
 lex.yy.c
+isa_interpreter
 
 # Prerequisites
 *.d
