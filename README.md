@@ -1,22 +1,26 @@
 # toy_assembly_interpreter
 Customizable interpreter for toy assembly languages for use in computer organization classes.
 
-How to use:
+# How to use:
 
-So far only the instruction set parser is in a working state. To get an idea for what this will be capable of,
-run make in an environment with flex and bison installed, then run ./isa_interpreter test2.txt call. This 
-will print out the abstract syntax tree built by the call command in the test2.txt file. The parser takes a list of commands
-in a custom register transfer notation, forms ASTs with them, creates a command struct to store all of the information about
-the instruction, then stores these in a symbol table.
+NOTE: Only isa parser is operational at the moment, running is just for testing that ASTs are built correctly
 
-Register Transfer Notation:
+1. Make sure you have Flex and Bison installed, comes pre installed in most linux distros, otherwise use these:
+    https://www.gnu.org/software/bison/
+    https://github.com/westes/flex
+
+2. Run make
+3. run ./isa_interpreter [file - for sample use test2.txt] [command name - with test2 try call or ret]
+
+
+# Register Transfer Notation:
 
 I designed this RTN to be as readable as possible for humans, as it's designed for use in classes. That being said, there are
 several restrictions on the syntax in this first version of the parser. The basic command structure looks like this:
 
-define [command name] [arguments] {[action 1];\n
-                                   [action 2];\n
-                                   ... }
+define [command name] [arguments] {[action 1];\
+                                   [action 2];\
+                                   [action 3];}
 
 The arguments are limited to dummy variables and registers of the form var[a-z] and reg[a-z]. This will eventually
 be changed to take any user variable names, but for now it lets me pre-generate a symbol table for the dummy arguments which
@@ -36,7 +40,7 @@ Look at the file test2.txt for an example of how this all fits together.
 
 
 
-What's next:
+# What's next:
 
 - add further error handling in instruction set parser
 - clean up grammar surrounding memory
