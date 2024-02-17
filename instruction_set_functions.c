@@ -59,8 +59,9 @@ struct command *get_command(char *name) {
             return c;
         }
 
-        if(!c->name) {		/* new entry */
+        if(!c->name) {
             printf("test, command not found");
+            break;
         }
 
         if(++c >= symtab+NHASH) c = commandtab;

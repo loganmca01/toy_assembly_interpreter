@@ -5,6 +5,9 @@ instruction_set.lex.c
 lex.yy.c
 isa_interpreter
 
+#Clion
+.idea/
+
 # Prerequisites
 *.d
 
