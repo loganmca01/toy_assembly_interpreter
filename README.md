@@ -18,9 +18,11 @@ NOTE: Only isa parser is operational at the moment, running is just for testing 
 I designed this RTN to be as readable as possible for humans, as it's designed for use in classes. That being said, there are
 several restrictions on the syntax in this first version of the parser. The basic command structure looks like this:
 
-define [command name] [arguments] {[action 1];\
-                                   [action 2];\
-                                   [action 3];}
+define [command name] [arguments] {
+[action 1];\
+[action 2];\
+[action 3];
+}
 
 The arguments are limited to dummy variables and registers of the form var[a-z] and reg[a-z]. This will eventually
 be changed to take any user variable names, but for now it lets me pre-generate a symbol table for the dummy arguments which
