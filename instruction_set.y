@@ -43,16 +43,18 @@
 
 %start command_list
 %%
-
+    // command list - starting symbol, entire input file should be part of it
 command_list: /* nothing */         {  }
     | command_list command NEWLINE  {  }
     | command_list command          {  }
 ;
 
+    // command - made up of definition, argument and list of actions in curly braces
 command: DEFINE NAME arg_list '{' action_list '}'
                         { add_command($2, $5, $3); }
 ;
 
+    // can be any special purpose or general purpose register
 register: REG           { $$ = $1; }
     | AC                { $$ = &symtab[52]; }
     | PC                { $$ = &symtab[53]; }
@@ -60,23 +62,18 @@ register: REG           { $$ = $1; }
     | BP                { $$ = &symtab[55]; }
 ;
 
-memory: '(' register ')'        { $$ = newmemref('M', newsymref('r', $2), newnum(0)); }
-    | '(' register '+' VAR ')'  { $$ = newmemref('M', newsymref('r', $2), newsymref('v', $4)); }
-    | '(' register '-' VAR ')'  { $$ = newmemref('m', newsymref('r', $2), newsymref('v', $4)); }
-    | '(' register '+' NUMBER ')'  { $$ = newmemref('M', newsymref('r', $2), newnum($4)); }
-    | '(' register '-' NUMBER ')'  { $$ = newmemref('m', newsymref('r', $2), newnum($4)); }
-    | '(' VAR ')'               { $$ = newmemref('M', newsymref('v', $2), newnum(0)); }
-    | '(' VAR '+' VAR ')'  { $$ = newmemref('M', newsymref('v', $2), newsymref('v', $4)); }
-    | '(' VAR '-' VAR ')'  { $$ = newmemref('m', newsymref('v', $2), newsymref('v', $4)); }
-    | '(' VAR '+' NUMBER ')'  { $$ = newmemref('M', newsymref('v', $2), newnum($4)); }
-    | '(' VAR '-' NUMBER ')'  { $$ = newmemref('m', newsymref('v', $2), newnum($4)); }
+    // memory reference
+memory: '(' exp ')'        { $$ = newmemref('m', $2); }
+
 ;
 
+   // list of register and variable arguments
 arg_list:    /* nothing */      { $$ = NULL; }
     | arg_list register         { if ($1) { $1->next = new_sym_list($2, NULL); $$ = $1;} else { $$ = new_sym_list($2, NULL); } }
     | arg_list VAR              { if ($1) { $1->next = new_sym_list($2, NULL); $$ = $1;} else $$ = new_sym_list($2, NULL); }
 ;
 
+    // expression - any number, memory reference, register, variable, operation, or comparison
 exp: exp CMP exp                { $$ = newcmp($2, $1, $3); }
     | exp '+' exp               { $$ = newast('+', $1, $3); }
     | exp '-' exp               { $$ = newast('-', $1, $3); }
@@ -88,9 +85,11 @@ exp: exp CMP exp                { $$ = newcmp($2, $1, $3); }
     | NUMBER                    { $$ = newnum($1); }
 ;
 
+    // conditional expression, helps with action
 conditional: COND exp           { $$ = newflow($2, NULL); }
 ;
 
+    // some variety of assignment operation, ends with semicolon
 action: register ASSIGN exp ';'            { $$ = newast('=', newsymref('r', $1), $3); }
     | memory ASSIGN exp ';'                { $$ = newast('=', $1, $3); }
     | register ASSIGN exp conditional ';'  { struct ast *front = newast('=', newsymref('r', $1), $3);
@@ -103,6 +102,7 @@ action: register ASSIGN exp ';'            { $$ = newast('=', newsymref('r', $1)
                                            }
 ;
 
+    // list of actions, each action must be on a different line
 action_list: action                 { $$ = new_ast_list($1, NULL); }
     | action_list NEWLINE action    { $$ = add_ast($1, new_ast_list($3, NULL)); }
 ;

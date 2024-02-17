@@ -11,7 +11,7 @@
 struct command commandtab[NHASH];
 struct symbol symtab[NUM_SYM];
 
-
+// hash function for command, pretty simple
 static int command_hash(char *name)
 {
     int hash = 11;
@@ -26,16 +26,17 @@ void add_command(char *name, struct ast_list *actions, struct sym_list *args) {
 
     struct command *c = &commandtab[command_hash(name)];
 
-    // track how many spaces in command table have been checked
     int scount = 0;
 
     while(scount++ < NHASH) {
 
+        /* command found */
         if(c->name && !strcmp(c->name, name)) {
             yyerror("command with name %s already defined\n", name);
         }
 
-        if(!c->name) {		/* new entry */
+        /* new command */
+        if(!c->name) {
             c->name = name;
             c->actions = actions;
             c->args = args;
@@ -51,17 +52,18 @@ void add_command(char *name, struct ast_list *actions, struct sym_list *args) {
 struct command *get_command(char *name) {
     struct command *c = &commandtab[command_hash(name)];
 
-    // track how many spaces in command table have been checked
     int scount = 0;
 
     while(scount++ < NHASH) {
+        /* command found */
         if(c->name && !strcmp(c->name, name)) {
             return c;
         }
 
+        /* command doesn't exist */
         if(!c->name) {
-            printf("test, command not found");
-            break;
+            fprintf(stderr, "command not found\n");
+            exit(1);
         }
 
         if(++c >= symtab+NHASH) c = commandtab;
@@ -165,7 +167,7 @@ struct ast *newsymref(char reftype, struct symbol *s) {
 
 }
 
-struct ast *newmemref(char nodetype, struct ast *loc, struct ast *offset) {
+struct ast *newmemref(char nodetype, struct ast *loc) {
 
     struct memref *a = malloc(sizeof(struct memref));
 
@@ -176,7 +178,6 @@ struct ast *newmemref(char nodetype, struct ast *loc, struct ast *offset) {
 
     a->nodetype = nodetype;
     a->loc = loc;
-    a->offset = offset;
     return (struct ast *)a;
 
 }
@@ -299,17 +300,21 @@ void dumpast(struct ast *a, int level) {
             dumpast(a->r, level);
             return;
 
+            /* if statement, dump conditional and result */
         case 'i':
             printf("flow %c\n", a->nodetype);
             dumpast( ((struct flow *)a)->cond, level);
             dumpast( ((struct flow *)a)->then, level);
             return;
 
-        case 'v': case 'r':
-            printf("var/reg ref %s\n", ((struct symref *)a)->sym->name);
+            /* variable, register, and memory asts */
+        case 'v':
+            printf("var ref %s\n", ((struct symref *)a)->sym->name);
             return;
-
-            case 'm': case 'M':              // TODO: fix this when fixing mem, add offset?
+        case 'r':
+            printf("reg ref %s\n", ((struct symref *)a)->sym->name);
+            return;
+        case 'm':
             printf("mem ref\n");
             dumpast(((struct memref *)a)->loc, level);
             // TODO: maybe another print here instead? test later
@@ -324,8 +329,6 @@ void dumpast(struct ast *a, int level) {
 // helper function, generates default register and variable symbols
 // will eventually be made less strict, less arbitrary
 void generate_symbols() {
-
-
 
     for (int i = 0; i < 26; i++) {
         symtab[i].name = strdup("reg0");
@@ -347,12 +350,6 @@ void generate_symbols() {
         symtab[i].name[3] = i - 8;
     }
 
-    /*
-    // for testing
-    for (int i = 0; i < NUM_SYM; i++) {
-        printf("%s\n", symtab[i].name);
-    }
-    */
 }
 
 void yyerror(char *s, ...) {
@@ -363,15 +360,13 @@ void yyerror(char *s, ...) {
     vfprintf(stderr, s, ap);
     fprintf(stderr, "\n");
 
-
-
 }
 
 int main(int argc, char **argv) {
     /* Process command line args*/
     yyin = fopen(argv[1], "r");
 
-    // generate default register and variable symbols
+    /* generate default register and variable symbols */
     generate_symbols();
 
     yyparse();
