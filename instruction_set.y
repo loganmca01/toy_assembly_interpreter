@@ -104,7 +104,9 @@ action: register ASSIGN exp ';'            { $$ = newast('=', newsymref('r', $1)
 
     // list of actions, each action must be on a different line
 action_list: action                 { $$ = new_ast_list($1, NULL); }
+    | NEWLINE action                { $$ = new_ast_list($2, NULL); }
     | action_list NEWLINE action    { $$ = add_ast($1, new_ast_list($3, NULL)); }
+    | action_list NEWLINE           { $$ = $1; }
 ;
 
 
