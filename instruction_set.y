@@ -44,9 +44,11 @@
 %start command_list
 %%
     // command list - starting symbol, entire input file should be part of it
-command_list: /* nothing */         {  }
-    | command_list command NEWLINE  {  }
-    | command_list command          {  }
+command_list: /* nothing */         { command_no = 1; }
+    | command_list command NEWLINE  { command_no++; }
+    | command_list command          { command_no++; }
+    | command_list error NEWLINE    { yyerror("error in command #%d", command_no); }
+    | command_list error            { yyerror("error in command #%d", command_no); }
 ;
 
     // command - made up of definition, argument and list of actions in curly braces

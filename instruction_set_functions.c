@@ -352,6 +352,8 @@ void generate_symbols() {
 
 }
 
+int command_no;
+
 void yyerror(char *s, ...) {
     va_list ap;
     va_start(ap, s);

@@ -129,4 +129,5 @@ void dumpast(struct ast *a, int level);
 // from flex, bison
 extern FILE *yyin;
 extern int yylineno;
+extern int command_no;
 void yyerror(char* s, ...);

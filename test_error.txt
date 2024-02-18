@@ -1,0 +1,3 @@
+define movm rega regb {(regb) := rega;}
+define add rega regb {AC := }
+define jmpz vara {PC := vara : AC == 0;}
