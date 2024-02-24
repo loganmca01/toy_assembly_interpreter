@@ -7,7 +7,7 @@
 
 %}
 
-
+%define parse.error detailed
 
 %union {
     struct ast *a;
@@ -47,8 +47,8 @@
 command_list: /* nothing */         { command_no = 1; }
     | command_list command NEWLINE  { command_no++; }
     | command_list command          { command_no++; }
-    | command_list error NEWLINE    { yyerror("error in command #%d", command_no); }
-    | command_list error            { yyerror("error in command #%d", command_no); }
+    | command_list error NEWLINE    {  }
+
 ;
 
     // command - made up of definition, argument and list of actions in curly braces
