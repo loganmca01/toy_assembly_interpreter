@@ -53,7 +53,23 @@ command_list: /* nothing */         { command_no = 1; }
 
     // command - made up of definition, argument and list of actions in curly braces
 command: DEFINE NAME arg_list '{' action_list '}'
-                        { add_command($2, $5, $3); }
+                        {
+                            int check = 0;
+                            for (struct ast_list *mask = $5; mask; mask = mask->next)
+                            {
+                                if (!verify_ast(mask->a, $3))
+                                {
+                                    yyerror("use of undefined dummy var/reg");
+                                    check = 1;
+                                    break;
+                                }
+                            }
+
+                            if (!check)
+                            {
+                                add_command($2, $5, $3);
+                            }
+                        }
 ;
 
     // can be any special purpose or general purpose register
@@ -105,7 +121,9 @@ action: register ASSIGN exp ';'            { $$ = newast('=', newsymref('r', $1)
 ;
 
     // list of actions, each action must be on a different line
-action_list: action                 { $$ = new_ast_list($1, NULL); }
+action_list: action                 {
+                                        $$ = new_ast_list($1, NULL);
+                                    }
     | NEWLINE action                { $$ = new_ast_list($2, NULL); }
     | action_list NEWLINE action    { $$ = add_ast($1, new_ast_list($3, NULL)); }
     | action_list NEWLINE           { $$ = $1; }

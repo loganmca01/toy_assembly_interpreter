@@ -12,9 +12,9 @@ struct command commandtab[NHASH];
 struct symbol symtab[NUM_SYM];
 
 // hash function for command, pretty simple
-static int command_hash(char *name)
+static unsigned int command_hash(char *name)
 {
-    int hash = 11;
+    unsigned int hash = 11;
     char c;
 
     while((c = *name++)) hash = hash * 17 + c;
@@ -56,6 +56,8 @@ struct command *get_command(char *name) {
 
     while(scount++ < NHASH) {
         /* command found */
+
+
         if(c->name && !strcmp(c->name, name)) {
             return c;
         }
@@ -324,6 +326,47 @@ void dumpast(struct ast *a, int level) {
             printf("bad %c\n", a->nodetype);
             return;
     }
+}
+
+int verify_ast(struct ast *a, struct sym_list *sl) {
+
+    switch(a->nodetype) {
+        /* constant */
+        case 'n':
+            return 1;
+
+            /* expressions, comparisons, assignment*/
+        case '+': case '-': case '*': case '/': case '=':
+        case '1': case '2': case '3': case '4': case '5':
+            return verify_ast(a->l, sl) && verify_ast(a->r, sl);
+
+            /* if statement, dump conditional and result */
+        case 'i':
+            return verify_ast(((struct flow *)a)->cond, sl) && verify_ast(((struct flow *)a)->then, sl);
+
+            /* variable, register, and memory asts */
+        case 'v':
+        case 'r':
+            return verify_name(((struct symref *)a)->sym->name, sl);
+        case 'm':
+            return verify_ast(((struct memref *)a)->loc, sl);
+        default:
+            yyerror("bad nodetype");
+            return 0;
+    }
+}
+
+int verify_name(char *n, struct sym_list *sl) {
+
+    if (!strcmp(n, "AC") || !strcmp(n, "PC") || !strcmp(n, "SP") || !strcmp(n, "BP"))
+        return 1;
+    for (struct sym_list *mask = sl; mask; mask = mask->next)
+    {
+        if (!strcmp(mask->sym->name, n)) return 1;
+    }
+
+    return 0;
+
 }
 
 // helper function, generates default register and variable symbols

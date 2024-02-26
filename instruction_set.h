@@ -7,8 +7,8 @@ struct command {
 };
 
 struct symbol {
-    char *name;
     double value;
+    char *name;
 };
 
 struct sym_list {
@@ -125,6 +125,8 @@ struct ast *newmemref(char nodetype, struct ast *loc);
 struct ast *newflow(struct ast *cond, struct ast *then);
 
 void dumpast(struct ast *a, int level);
+int verify_ast(struct ast *a, struct sym_list *sl);
+int verify_name(char *n, struct sym_list *sl);
 
 // from flex, bison
 extern FILE *yyin;
