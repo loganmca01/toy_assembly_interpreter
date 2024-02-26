@@ -54,12 +54,13 @@ command_list: /* nothing */         { command_no = 1; }
     // command - made up of definition, argument and list of actions in curly braces
 command: DEFINE NAME arg_list '{' action_list '}'
                         {
-                            int check = 0;
+                            int check = 0, count = 0;
                             for (struct ast_list *mask = $5; mask; mask = mask->next)
                             {
+                                count++;
                                 if (!verify_ast(mask->a, $3))
                                 {
-                                    yyerror("use of undefined dummy var/reg");
+                                    yyerror("use of undefined dummy var/reg in command %d action %d", command_no, count);
                                     check = 1;
                                     break;
                                 }
