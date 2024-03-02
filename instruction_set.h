@@ -128,6 +128,18 @@ void dumpast(struct ast *a, int level);
 int verify_ast(struct ast *a, struct sym_list *sl);
 int verify_name(char *n, struct sym_list *sl);
 
+/*
+ * User environment
+ *
+ * */
+
+void run_user();
+
+void init_registers();
+
+void handle_dot(char *input);
+
+
 // from flex, bison
 extern FILE *yyin;
 extern int yylineno;

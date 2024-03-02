@@ -2,7 +2,7 @@
 // Created by logan on 2/3/2024.
 //
 
-#include "instruction_set.h"
+#  include "instruction_set.h"
 #  include <stdlib.h>
 #  include <stdarg.h>
 #  include <string.h>
@@ -43,7 +43,7 @@ void add_command(char *name, struct ast_list *actions, struct sym_list *args) {
             return;
         }
 
-        if(++c >= symtab+NHASH) c = commandtab;
+        if(++c >= commandtab+NHASH) c = commandtab;
     }
     yyerror("command table overflow\n");
 
@@ -68,7 +68,7 @@ struct command *get_command(char *name) {
             exit(1);
         }
 
-        if(++c >= symtab+NHASH) c = commandtab;
+        if(++c >= commandtab+NHASH) c = commandtab;
     }
 }
 
@@ -407,6 +407,9 @@ void yyerror(char *s, ...) {
 
 }
 
+extern int yyparse(void);
+extern void run_user();
+
 int main(int argc, char **argv) {
     /* Process command line args*/
     yyin = fopen(argv[1], "r");
@@ -428,6 +431,8 @@ int main(int argc, char **argv) {
         dumpast(ca->a, 0);
         ca = ca->next;
     }
+
+    run_user();
 
     return 0;
 }
