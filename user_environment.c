@@ -1,10 +1,10 @@
 
 #include "instruction_set.h"
 
-#  include <stdio.h>
-#  include <stdlib.h>
-#  include <stdarg.h>
-#  include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <string.h>
 
 /* 8 KB stack */
 #define STACK_SIZE 8192
@@ -22,8 +22,6 @@ int BP;
 int SP;
 int PC;
 char *IR;
-
-void handle_dot(char *input);
 
 /* tracks next available address in code array */
 int code_index;
@@ -50,15 +48,47 @@ void run_user() {
         /* move past leading spaces */
         while(*input == ' ') input++;
 
-        if (*input == '.') handle_dot(input);
+        if (*input == '.') run_dot(input);
 
     }
 
 }
 
-void handle_dot(char *input) {
-    input = NULL;
+void run_dot(char *input) {
+
+    char *mask = input;
+    strsep(&mask, " ");
+
+    if (!strcmp(input, ".print_mem")) {
+        if (!mask) {
+            fprintf(stderr, "invalid number of parameters, should be:\n .print_mem [start address] [end address]\n");
+            return;
+        }
+    }
+    if (!strcmp(input, ".print_code")) {
+        if (!mask) {
+            fprintf(stderr, "invalid number of parameters, should be:\n .print_code [start address] [end address]\n");
+            return;
+        }
+    }
+    if (!strcmp(input, ".clear_mem")) {
+        if (!mask) {
+            fprintf(stderr, "invalid number of parameters, should be:\n .clear_mem [start address] [end address]\n");
+            return;
+        }
+    }
+    if (!strcmp(input, ".clear_code")) {
+        if (!mask) {
+            fprintf(stderr, "invalid number of parameters, should be:\n .print_mem [start address] [end address]\n");
+            return;
+        }
+    }
+    else {
+        /* TODO: add "help" command, possibly with arguments for section and tell user to call it */
+        fprintf(stderr, "invalid dot command\n");
+    }
 }
+
 
 void init_registers() {
 

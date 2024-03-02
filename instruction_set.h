@@ -1,4 +1,4 @@
-#  include <stdio.h>
+#include <stdio.h>
 
 struct command {
     char *name;
@@ -137,7 +137,7 @@ void run_user();
 
 void init_registers();
 
-void handle_dot(char *input);
+void run_dot(char *input);
 
 
 // from flex, bison

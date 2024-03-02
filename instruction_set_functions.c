@@ -2,11 +2,11 @@
 // Created by logan on 2/3/2024.
 //
 
-#  include "instruction_set.h"
-#  include <stdlib.h>
-#  include <stdarg.h>
-#  include <string.h>
-#  include <math.h>
+#include "instruction_set.h"
+#include <stdlib.h>
+#include <stdarg.h>
+#include <string.h>
+#include <math.h>
 
 struct command commandtab[NHASH];
 struct symbol symtab[NUM_SYM];
