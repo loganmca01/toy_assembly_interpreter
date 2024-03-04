@@ -135,9 +135,13 @@ int verify_name(char *n, struct sym_list *sl);
 
 void run_user();
 
+void print_welcome();
 void init_registers();
 
-void run_dot(char *input);
+/* helper functions for running commands */
+int run_dot(char *input);
+void run_print(int type, char *args);
+void run_clear(int type, char *args);
 
 
 // from flex, bison

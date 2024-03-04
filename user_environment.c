@@ -23,12 +23,17 @@ int SP;
 int PC;
 char *IR;
 
+/* general purpose registers */
+int gen_reg[8];
+
 /* tracks next available address in code array */
 int code_index;
 
 void run_user() {
 
     init_registers();
+
+    print_welcome();
 
     printf("> ");
 
@@ -39,6 +44,8 @@ void run_user() {
 
     // for edge case testing (user enters line more than 256 bytes) add second pointer to spot, compare two.
 
+    int done = 0;
+
     while(getline(&input, &size, stdin)) {
 
         while (*input == ' ') input++;
@@ -48,40 +55,55 @@ void run_user() {
         /* move past leading spaces */
         while(*input == ' ') input++;
 
-        if (*input == '.') run_dot(input);
+        if (*input == '.') done = run_dot(input);
+
+        if (done) break;
 
     }
 
+
+
+
 }
 
-void run_dot(char *input) {
+void print_welcome() {
+
+    printf("Welcome to the toy assembly interpreter.\n"
+           "5 Special purpose registers AC, BP, SP, PC, IR\n"
+           "8 General purpose registers reg0 - reg7\n\n"
+           "The stack is 8 KB, or 8192 bytes. Code is 2 KB or 2048 bytes.\n"
+           "For information about the system and the dot commands available to you use .help\n\n"
+           "Keep in mind that dot commands are not loaded into code memory, and should\n"
+           "be ignored when calculating instruction locations for jumps.\n\n");
+}
+
+
+int run_dot(char *input) {
 
     char *mask = input;
     strsep(&mask, " ");
 
     if (!strcmp(input, ".print_mem")) {
-        if (!mask) {
-            fprintf(stderr, "invalid number of parameters, should be:\n .print_mem [start address] [end address]\n");
-            return;
-        }
+        while (mask && *mask == ' ') mask++;
     }
-    if (!strcmp(input, ".print_code")) {
-        if (!mask) {
-            fprintf(stderr, "invalid number of parameters, should be:\n .print_code [start address] [end address]\n");
-            return;
-        }
+    else if (!strcmp(input, ".print_code")) {
+        while (mask && *mask == ' ') mask++;
     }
-    if (!strcmp(input, ".clear_mem")) {
-        if (!mask) {
-            fprintf(stderr, "invalid number of parameters, should be:\n .clear_mem [start address] [end address]\n");
-            return;
-        }
+    else if (!strcmp(input, ".clear_mem")) {
+        while (mask && *mask == ' ') mask++;
     }
-    if (!strcmp(input, ".clear_code")) {
-        if (!mask) {
-            fprintf(stderr, "invalid number of parameters, should be:\n .print_mem [start address] [end address]\n");
-            return;
-        }
+    else if (!strcmp(input, ".clear_code")) {
+        while (mask && *mask == ' ') mask++;
+    }
+    else if (!strcmp(input, ".clear_all")) {
+        while (mask && *mask == ' ') mask++;
+        run_clear(2, mask);
+    }
+    else if (!strcmp(input, ".help")) {
+
+    }
+    else if (!strcmp(input, ".quit")) {
+        return 1;
     }
     else {
         /* TODO: add "help" command, possibly with arguments for section and tell user to call it */
@@ -89,6 +111,13 @@ void run_dot(char *input) {
     }
 }
 
+void run_print(int type, char *args) {
+
+}
+
+void run_clear(int type, char *args) {
+
+}
 
 void init_registers() {
 

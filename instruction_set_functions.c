@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
-#include <math.h>
 
 struct command commandtab[NHASH];
 struct symbol symtab[NUM_SYM];
@@ -421,6 +420,8 @@ int main(int argc, char **argv) {
 
     fclose(yyin);
 
+    /*
+
     char *com_name = argv[2];
 
     struct command *c = get_command(com_name);
@@ -431,6 +432,8 @@ int main(int argc, char **argv) {
         dumpast(ca->a, 0);
         ca = ca->next;
     }
+
+    */
 
     run_user();
 
