@@ -136,7 +136,9 @@ int verify_name(char *n, struct sym_list *sl);
 void run_user();
 
 void print_welcome();
-void init_registers();
+void print_spec_regs();
+void print_help_message();
+void print_system_info();
 
 /* helper functions for running commands */
 int run_dot(char *input);
