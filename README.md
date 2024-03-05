@@ -49,8 +49,8 @@ Look at the file test2.txt for an example of how this all fits together.
 
 # What's next:
 
-- begin work on user input lexer and parser, to be run from same main
-- create virtual environment with an array of chars for the stack and variables/symbols for registers
+- Finish user environment for initial version of software
 - add in more customization surrounding default registers, stack location in memory array, flags, word size, etc.
-- put it all together
+- Run detailed tests using valgrind, get rid of all remaining memory leaks
+- Fix inefficient areas of implementation, work on flattening lists/trees into array based implementation
 
