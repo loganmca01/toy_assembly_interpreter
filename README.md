@@ -3,14 +3,14 @@ Customizable interpreter for toy assembly languages for use in computer organiza
 
 # How to use:
 
-NOTE: Only isa parser is operational at the moment, running is just for testing that ASTs are built correctly
+NOTE: Functionality is limited at this point, as I'm finishing up the user environment. Instructions can't be run in user environment yet, but ASTs are generated properly
 
 1. Make sure you have Flex and Bison installed, comes pre installed in most linux distros, otherwise use these:
     https://www.gnu.org/software/bison/
     https://github.com/westes/flex
 
 2. Run make
-3. run ./isa_interpreter [file - for sample use test2.txt] [command name - with test2 try call or ret]
+3. run ./isa_interpreter [file - for sample use test2.txt]
 
 
 # Register Transfer Notation:
@@ -40,15 +40,17 @@ conditionals are represented by a : followed by some comparison.
 
 Look at the file test2.txt for an example of how this all fits together.
 
+# Recent updates
+
+- Fixed Yacc grammar surrounding memory, got rid of unnecessary rules and replaced with better, more broad rule
+- Added much more specific error messages for issues with instruction set
+- Began proper implementation of user environment
 
 
 # What's next:
 
-- add further error handling in instruction set parser
-- clean up grammar surrounding memory
-- begin work on user input lexer and parser, to be run from same main
-- create virtual environment with an array of chars for the stack and variables/symbols for registers
+- Finish user environment for initial version of software
 - add in more customization surrounding default registers, stack location in memory array, flags, word size, etc.
-- put it all together
-
+- Run detailed tests using valgrind, get rid of all remaining memory leaks
+- Fix inefficient areas of implementation, work on flattening lists/trees into array based implementation
 
