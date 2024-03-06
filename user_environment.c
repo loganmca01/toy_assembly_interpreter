@@ -228,13 +228,13 @@ void run_print(int type, char *args) {
          * start and range will always be positive and within bounds of int
          *
          */
-        if (start_val % 4) printf("%x: ", (unsigned int) start_val);
+        if (start_val % 4) printf("0x%.4x: ", (unsigned int) start_val);
 
 
         for (long l = start_val; l <= end_val; l++) {
 
             if ((l % 4) == 0) {
-                printf("\n%x: ", (unsigned int) l);
+                printf("\n0x%.4x: ", (unsigned int) l);
             }
 
             print_bin(stack[l]);
