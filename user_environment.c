@@ -5,8 +5,9 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include <errno.h>
 
-/* TODO: replace these all with globals and allow instruction set to set values for each */
+/* TODO: replace these all with globals (possibly global system_info struct) and allow instruction set to set values for each */
 
 /* 8 KB stack */
 #define STACK_SIZE 8192
@@ -25,7 +26,7 @@ char *code[CODE_SIZE];
 
 int reg[NUM_GEN_REG + NUM_SPEC_REG];
 
-/* tracks next available address in code array */
+/* tracks next available address in code array - not always same as PC in case of jumps */
 int code_index;
 
 void run_user() {
@@ -102,6 +103,8 @@ void print_help_message() {
 
     print_system_info();
 
+    /* TODO: for print_stack, add another option to print bytes vs words? */
+
     printf("Dot commands available:\n\n");
     printf(".help                                         you're here now\n\n");
     printf(".print_stack [start address] [end address]    print the contents of stack between two addresses\n\n");
@@ -115,7 +118,6 @@ void print_help_message() {
 
 }
 
-
 int run_dot(char *input) {
 
     char *mask = input;
@@ -123,6 +125,7 @@ int run_dot(char *input) {
 
     if (!strcmp(input, ".print_stack")) {
         while (mask && *mask == ' ') mask++;
+        run_print(1, mask);
     }
     else if (!strcmp(input, ".print_code")) {
         while (mask && *mask == ' ') mask++;
@@ -145,16 +148,133 @@ int run_dot(char *input) {
     }
     else {
         /* TODO: add "help" command, possibly with arguments for section and tell user to call it */
-        fprintf(stderr, "invalid dot command\n");
+        fprintf(stderr, "error: invalid dot command\n");
     }
     return 0;
 }
 
+/*
+ * Print contents of stack or code memory
+ * Called by run_dot
+ *
+ * mode 0 = code
+ *      1 = stack
+ *
+ * function is long but most of it is just checking error cases
+ *
+ */
 void run_print(int type, char *args) {
+
+    /* type is not 0, so printing stack */
+    /* TODO: possibly print out differently depending on word size, maybe require 32 bit word size? tbd */
+    /* TODO: consider, should I give errors from issues with alignment? or is that an unnecessary complication */
+    if (type) {
+        char *mask = args;
+
+        strsep(&mask, " ");
+
+        if (!mask) {
+            fprintf(stderr, "error: invalid number of parameters, proper form .print_stack [start address] [end address]\n");
+            return;
+        }
+
+        char *endptr;
+
+        errno = 0;
+        long start_val = strtol(args, &endptr, 0);
+
+        /* two error cases, not a number and number out of range of stack */
+        if (errno || *endptr) {
+            fprintf(stderr, "error: parameters for .print_stack must be numbers in base 10 or base 16 prepended with 0x\n");
+            return;
+        }
+        else if (start_val < STACK_START || start_val > STACK_START + STACK_SIZE) {
+            fprintf(stderr, "error: parameters for .print_stack must be within stack range %d to %d\n", STACK_START, STACK_SIZE + STACK_START);
+            return;
+        }
+
+        char *mask2 = mask;
+        strsep(&mask2, " ");
+
+        /* check for a third argument, trailing spaces allowed */
+        if (mask2) {
+            while(*mask2 == ' ') mask2++;
+            if(*mask2) {
+                fprintf(stderr, "error: invalid number of parameters, proper form .print_stack [start address] [end address]\n");
+                return;
+            }
+        }
+
+        errno = 0;
+        long end_val = strtol(mask, &endptr, 0);
+
+        /* same error cases as first arg, added case for arg less than first */
+        if (errno || *endptr) {
+            fprintf(stderr, "error: parameters for .print_stack must be numbers in base 10 or base 16 prepended with 0x\n");
+            return;
+        }
+        else if (end_val < STACK_START || end_val > STACK_START + STACK_SIZE) {
+            fprintf(stderr, "error: parameters for .print_stack must be within stack range %d to %d\n", STACK_START, STACK_SIZE + STACK_START);
+            return;
+        }
+        else if (end_val < start_val) {
+            fprintf(stderr, "error: second parameter of .print_stack must be >= first\n");
+            return;
+        }
+
+        /* print starting address if it's not divisible by 4 (if it is, it will be printed in loop)
+         *
+         * shouldn't be possible to overflow conversion or mess up sign as stack
+         * start and range will always be positive and within bounds of int
+         *
+         */
+        if (start_val % 4) printf("%x: ", (unsigned int) start_val);
+
+
+        for (long l = start_val; l <= end_val; l++) {
+
+            if ((l % 4) == 0) {
+                printf("\n%x: ", (unsigned int) l);
+            }
+
+            print_bin(stack[l]);
+
+            printf(" ");
+
+        }
+
+        printf("\n");
+
+    }
+    else {
+
+    }
+}
+
+void print_bin(char byte_val) {
+    char buff[9];
+    buff[8] = '\0';
+
+    for (int i = 7; i >= 0; i--) {
+
+        if (byte_val % 2) buff[i] = '1';
+        else buff[i] = '0';
+    }
+
+    printf("%s", &buff[0]);
 
 }
 
+/*
+ * Zero out stack and/or code memory
+ *
+ * mode 0 = clear code
+ *      1 = clear stack
+ *      2 = clear all of both
+ *
+ */
 void run_clear(int type, char *args) {
 
 }
+
 

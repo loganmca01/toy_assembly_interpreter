@@ -139,6 +139,7 @@ void print_welcome();
 void print_spec_regs();
 void print_help_message();
 void print_system_info();
+void print_bin(char byte_val);
 
 /* helper functions for running commands */
 int run_dot(char *input);
