@@ -149,9 +149,11 @@ int run_dot(char *input) {
     }
     else if (!strcmp(input, ".clear_stack")) {
         while (mask && *mask == ' ') mask++;
+        run_clear(1, mask);
     }
     else if (!strcmp(input, ".clear_code")) {
         while (mask && *mask == ' ') mask++;
+        run_clear(0, mask);
     }
     else if (!strcmp(input, ".clear_all")) {
         while (mask && *mask == ' ') mask++;
@@ -314,6 +316,107 @@ void print_bin(char byte_val) {
  *
  */
 void run_clear(int type, char *args) {
+
+    if (type == 2) {
+
+        while (args && *args) *args++;
+        if (args && *args) {
+            fprintf(stderr, "error: .clear_all takes no parameters\n");
+            return;
+        }
+
+        for (int i = CODE_START; i < CODE_START + CODE_SIZE; i++) {
+            code[i] = NULL;
+        }
+
+        for (int i = STACK_START; i < STACK_START + STACK_SIZE; i++) {
+            stack[i] = 0;
+        }
+
+    }
+
+    else {
+
+        char *mask = args;
+
+        char *messages[2];
+        messages[0] = "clear_code";
+        messages[1] = "clear_stack";
+
+        strsep(&mask, " ");
+
+        if (!mask) {
+            fprintf(stderr, "error: invalid number of parameters, proper form .%s [start address] [end address]\n", messages[type]);
+            return;
+        }
+
+        char *endptr;
+
+        errno = 0;
+        long start_val = strtol(args, &endptr, 0);
+
+        /* two error cases, not a number and number out of range of stack */
+        if (errno || *endptr) {
+            fprintf(stderr, "error: parameters for .%s must be numbers in base 10 or base 16 prepended with 0x\n", messages[type]);
+            return;
+        }
+        else if (type && (start_val < STACK_START || start_val > STACK_START + STACK_SIZE)) {
+            fprintf(stderr, "error: parameters for .clear_stack must be within stack range %d to %d\n", STACK_START, STACK_SIZE + STACK_START);
+            return;
+        }
+        else if (!type && (start_val < CODE_START || start_val > CODE_START + CODE_SIZE)) {
+            fprintf(stderr, "error: parameters for .clear_code must be within code range %d to %d\n", CODE_START, CODE_START + CODE_SIZE);
+            return;
+        }
+
+        char *mask2 = mask;
+        strsep(&mask2, " ");
+
+        /* check for a third argument, trailing spaces allowed */
+        if (mask2) {
+            while(*mask2 == ' ') mask2++;
+            if(*mask2) {
+                fprintf(stderr, "error: invalid number of parameters, proper form .%s [start address] [end address]\n", messages[type]);
+                return;
+            }
+        }
+
+        errno = 0;
+        long end_val = strtol(mask, &endptr, 0);
+
+        /* same error cases as first arg, added case for arg less than first */
+        if (errno || *endptr) {
+            fprintf(stderr, "error: parameters for .%s must be numbers in base 10 or base 16 prepended with 0x\n", messages[type]);
+            return;
+        }
+        else if (type && (end_val < STACK_START || end_val > STACK_START + STACK_SIZE)) {
+            fprintf(stderr, "error: parameters for .clear_stack must be within stack range %d to %d\n", STACK_START, STACK_SIZE + STACK_START);
+            return;
+        }
+        else if (!type && (end_val < CODE_START || end_val > CODE_START + CODE_SIZE)) {
+            fprintf(stderr, "error: parameters for .clear_code must be within code range %d to %d\n", CODE_START, CODE_START + CODE_SIZE);
+            return;
+        }
+        else if (end_val < start_val) {
+            fprintf(stderr, "error: second parameter of .%s must be >= first\n", messages[type]);
+            return;
+        }
+
+        if (type) {
+            for (long l = start_val; l <= end_val; l++) {
+                stack[l] = 0;
+            }
+        }
+        else {
+            for (long l = start_val; l <= end_val; l++) {
+                code[l] = NULL;
+            }
+        }
+
+
+    }
+
+
 
 }
 
