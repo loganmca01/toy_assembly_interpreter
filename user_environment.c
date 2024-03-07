@@ -21,9 +21,12 @@
 #define NUM_SPEC_REG 4
 #define NUM_GEN_REG 8
 
-char stack[STACK_SIZE];
+unsigned char stack[STACK_SIZE];
 char *code[CODE_SIZE];
 
+/* TODO: when adding custom registers to instruction set, allow for different sizes (and possibly different word size)
+ * TODO ALSO: maybe assign all registers numbers and add conversion, then check for correct reg size array by number
+ */
 int reg[NUM_GEN_REG + NUM_SPEC_REG];
 
 /* tracks next available address in code array - not always same as PC in case of jumps */
@@ -32,6 +35,19 @@ int code_index;
 void run_user() {
 
     print_welcome();
+
+    /*
+     * temporary test for dot commands till instructions can run
+     */
+
+    stack[0] = 25;
+    stack[3] = 166;
+    stack[8] = 3;
+
+    code[0] = "test1";
+    code[5] = "test2";
+    code[26] = "test3";
+    code[21] = "test4";
 
     printf("> ");
 
@@ -129,6 +145,7 @@ int run_dot(char *input) {
     }
     else if (!strcmp(input, ".print_code")) {
         while (mask && *mask == ' ') mask++;
+        run_print(0, mask);
     }
     else if (!strcmp(input, ".clear_stack")) {
         while (mask && *mask == ' ') mask++;
@@ -165,71 +182,75 @@ int run_dot(char *input) {
  */
 void run_print(int type, char *args) {
 
-    /* type is not 0, so printing stack */
-    /* TODO: possibly print out differently depending on word size, maybe require 32 bit word size? tbd */
-    /* TODO: consider, should I give errors from issues with alignment? or is that an unnecessary complication */
+    char *mask = args;
+
+    char *messages[2];
+    messages[0] = "print_code";
+    messages[1] = "print_stack";
+
+    strsep(&mask, " ");
+
+    if (!mask) {
+        fprintf(stderr, "error: invalid number of parameters, proper form .%s [start address] [end address]\n", messages[type]);
+        return;
+    }
+
+    char *endptr;
+
+    errno = 0;
+    long start_val = strtol(args, &endptr, 0);
+
+    /* two error cases, not a number and number out of range of stack */
+    if (errno || *endptr) {
+        fprintf(stderr, "error: parameters for .%s must be numbers in base 10 or base 16 prepended with 0x\n", messages[type]);
+        return;
+    }
+    else if (type && (start_val < STACK_START || start_val > STACK_START + STACK_SIZE)) {
+        fprintf(stderr, "error: parameters for .print_stack must be within stack range %d to %d\n", STACK_START, STACK_SIZE + STACK_START);
+        return;
+    }
+    else if (!type && (start_val < CODE_START || start_val > CODE_START + CODE_SIZE)) {
+        fprintf(stderr, "error: parameters for .print_code must be within code range %d to %d\n", CODE_START, CODE_START + CODE_SIZE);
+        return;
+    }
+
+    char *mask2 = mask;
+    strsep(&mask2, " ");
+
+    /* check for a third argument, trailing spaces allowed */
+    if (mask2) {
+        while(*mask2 == ' ') mask2++;
+        if(*mask2) {
+            fprintf(stderr, "error: invalid number of parameters, proper form .%s [start address] [end address]\n", messages[type]);
+            return;
+        }
+    }
+
+    errno = 0;
+    long end_val = strtol(mask, &endptr, 0);
+
+    /* same error cases as first arg, added case for arg less than first */
+    if (errno || *endptr) {
+        fprintf(stderr, "error: parameters for .%s must be numbers in base 10 or base 16 prepended with 0x\n", messages[type]);
+        return;
+    }
+    else if (type && (end_val < STACK_START || end_val > STACK_START + STACK_SIZE)) {
+        fprintf(stderr, "error: parameters for .print_stack must be within stack range %d to %d\n", STACK_START, STACK_SIZE + STACK_START);
+        return;
+    }
+    else if (!type && (end_val < CODE_START || end_val > CODE_START + CODE_SIZE)) {
+        fprintf(stderr, "error: parameters for .print_code must be within code range %d to %d\n", CODE_START, CODE_START + CODE_SIZE);
+        return;
+    }
+    else if (end_val < start_val) {
+        fprintf(stderr, "error: second parameter of .%s must be >= first\n", messages[type]);
+        return;
+    }
+
     if (type) {
-        char *mask = args;
 
-        strsep(&mask, " ");
-
-        if (!mask) {
-            fprintf(stderr, "error: invalid number of parameters, proper form .print_stack [start address] [end address]\n");
-            return;
-        }
-
-        char *endptr;
-
-        errno = 0;
-        long start_val = strtol(args, &endptr, 0);
-
-        /* two error cases, not a number and number out of range of stack */
-        if (errno || *endptr) {
-            fprintf(stderr, "error: parameters for .print_stack must be numbers in base 10 or base 16 prepended with 0x\n");
-            return;
-        }
-        else if (start_val < STACK_START || start_val > STACK_START + STACK_SIZE) {
-            fprintf(stderr, "error: parameters for .print_stack must be within stack range %d to %d\n", STACK_START, STACK_SIZE + STACK_START);
-            return;
-        }
-
-        char *mask2 = mask;
-        strsep(&mask2, " ");
-
-        /* check for a third argument, trailing spaces allowed */
-        if (mask2) {
-            while(*mask2 == ' ') mask2++;
-            if(*mask2) {
-                fprintf(stderr, "error: invalid number of parameters, proper form .print_stack [start address] [end address]\n");
-                return;
-            }
-        }
-
-        errno = 0;
-        long end_val = strtol(mask, &endptr, 0);
-
-        /* same error cases as first arg, added case for arg less than first */
-        if (errno || *endptr) {
-            fprintf(stderr, "error: parameters for .print_stack must be numbers in base 10 or base 16 prepended with 0x\n");
-            return;
-        }
-        else if (end_val < STACK_START || end_val > STACK_START + STACK_SIZE) {
-            fprintf(stderr, "error: parameters for .print_stack must be within stack range %d to %d\n", STACK_START, STACK_SIZE + STACK_START);
-            return;
-        }
-        else if (end_val < start_val) {
-            fprintf(stderr, "error: second parameter of .print_stack must be >= first\n");
-            return;
-        }
-
-        /* print starting address if it's not divisible by 4 (if it is, it will be printed in loop)
-         *
-         * shouldn't be possible to overflow conversion or mess up sign as stack
-         * start and range will always be positive and within bounds of int
-         *
-         */
+        /* print starting address if not divisible by 4, otherwise it's handled in loop */
         if (start_val % 4) printf("0x%.4x: ", (unsigned int) start_val);
-
 
         for (long l = start_val; l <= end_val; l++) {
 
@@ -242,16 +263,33 @@ void run_print(int type, char *args) {
             printf(" ");
 
         }
-
-        printf("\n");
-
     }
     else {
 
+        printf("\n");
+
+        for (long l = start_val; l <= end_val; l++) {
+
+            if (!code[l]) printf("0x%.4x: \n", (unsigned int) l);
+            else printf("0x%.4x: %s\n", (unsigned int) l, code[l]);
+
+        }
+
     }
+
+
+    printf("\n");
+
 }
 
+
+
+
 void print_bin(char byte_val) {
+
+    /* should ask if there's any way it's no null terminator here to not use the
+     * whole extra byte for 9 instead of 8 and just print char by char totally safely in this small function
+     */
     char buff[9];
     buff[8] = '\0';
 
@@ -259,6 +297,8 @@ void print_bin(char byte_val) {
 
         if (byte_val % 2) buff[i] = '1';
         else buff[i] = '0';
+
+        byte_val /= 2;
     }
 
     printf("%s", &buff[0]);
