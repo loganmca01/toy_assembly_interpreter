@@ -70,13 +70,15 @@ void run_user() {
         while(*input == ' ') input++;
 
         if (*input == '.') done = run_dot(input);
+        else {
+            int check = run_instruction(input);
+        }
 
         if (done) break;
 
         printf("> ");
 
     }
-
 }
 
 void print_welcome() {
@@ -263,7 +265,6 @@ void run_print(int type, char *args) {
             print_bin(stack[l]);
 
             printf(" ");
-
         }
     }
     else {
@@ -412,11 +413,23 @@ void run_clear(int type, char *args) {
                 code[l] = NULL;
             }
         }
+    }
+}
 
+int run_instruction(char *instr) {
 
+    char *mask = instr;
+
+    strsep(&mask, " ");
+
+    struct command *c = get_command(instr);
+
+    if (!c) {
+        fprintf(stderr, "error: instruction not found\n");
+        return 1;
     }
 
-
+    for ()
 
 }
 

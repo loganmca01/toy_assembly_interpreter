@@ -142,6 +142,7 @@ void print_system_info();
 void print_bin(char byte_val);
 
 /* helper functions for running commands */
+int run_instruction(char *instr);
 int run_dot(char *input);
 void run_print(int type, char *args);
 void run_clear(int type, char *args);

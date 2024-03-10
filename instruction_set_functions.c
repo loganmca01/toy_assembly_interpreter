@@ -63,8 +63,7 @@ struct command *get_command(char *name) {
 
         /* command doesn't exist */
         if(!c->name) {
-            fprintf(stderr, "command not found\n");
-            exit(1);
+            return NULL;
         }
 
         if(++c >= commandtab+NHASH) c = commandtab;
@@ -291,7 +290,7 @@ void dumpast(struct ast *a, int level) {
         /* constant */
         case 'n':
             printf("number %4.4g\n", ((struct numval *)a)->number);
-            break;
+            return;
 
             /* expressions, comparisons, assignment*/
         case '+': case '-': case '*': case '/': case '=':
@@ -322,7 +321,7 @@ void dumpast(struct ast *a, int level) {
             return;
 
         default:
-            printf("bad %c\n", a->nodetype);
+            printf("bad nodetype %c\n", a->nodetype);
             return;
     }
 }

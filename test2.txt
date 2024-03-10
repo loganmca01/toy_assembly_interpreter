@@ -7,7 +7,8 @@ PC := varb;
 SP := SP + 2;
 (SP) := BP;
 BP := SP;
-SP := SP + 2;}
+SP := SP + 2;
+}
 define ret {
 SP := BP;
 BP := (SP);
