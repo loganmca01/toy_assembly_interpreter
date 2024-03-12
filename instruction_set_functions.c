@@ -8,9 +8,11 @@
 #include <string.h>
 
 struct command commandtab[NHASH];
-struct symbol *symtab;
+struct symbol *spec_reg;
+struct symbol *gen_reg;
 
-uint32_t NUM_SYM;
+unsigned int NUM_SPEC_REG;
+unsigned int NUM_GEN_REG;
 
 // hash function for command, pretty simple
 static unsigned int command_hash(char *name)
@@ -237,10 +239,13 @@ void ast_list_free(struct ast_list *astl) {
 
 }
 
-void sym_table_free() {
+void reg_tables_free() {
 
-    for (int i = 0; i < NUM_SYM; i++) {
-        free(symtab[i].name);
+    for (int i = 0; i < NUM_SPEC_REG; i++) {
+        free(spec_reg[i].name);
+    }
+    for (int i = 0; i < NUM_GEN_REG; i++) {
+        free(spec_reg[i].name);
     }
 }
 
@@ -291,7 +296,72 @@ void treefree(struct ast *a) {
 
 }
 
-void dumpast(struct ast *a, int level) {
+int eval_cmp(struct ast *a) {
+    if(!a) {
+        fprintf(stderr, "missing cond node\n");
+        return 0;
+    }
+
+    switch(a->nodetype) {
+
+        case '1':
+            return eval_ast(a->r) > eval_ast(a->l);
+        case '2':
+            return eval_ast(a->r) < eval_ast(a->l);
+        case '3':
+            return eval_ast(a->r) == eval_ast(a->l);
+        case '4':
+            return eval_ast(a->r) >= eval_ast(a->l);
+        case '5':
+            return eval_ast(a->r) <= eval_ast(a->l);
+        default:
+            fprintf(stderr, "error: invalid comparison type\n");
+            return 0;
+
+    }
+
+}
+
+int eval_ast(struct ast *a) {
+
+    if(!a) {
+        fprintf(stderr, "missing ast node\n");
+        return 0;
+    }
+
+    switch(a->nodetype) {
+        /* constant */
+        case 'n':
+            return (((struct numval *)a)->number);
+
+            /* expressions */
+        case '+':
+            return eval_ast(a->l) + eval_ast(a->r);
+        case '-':
+            return eval_ast(a->l) - eval_ast(a->r);
+        case '*':
+            return eval_ast(a->l) * eval_ast(a->r);
+        case '/':
+            return eval_ast(a->l) / eval_ast(a->r);
+
+            /* variable, register, and memory asts */
+        case 'v': case 'r':
+            return (((struct symref *)a)->sym->value);
+        case 'm':
+            int memloc = eval_ast(((struct memref *)a)->loc);
+            if (memloc < STACK_START || memloc > STACK_START + STACK_SIZE) {
+                fprintf(stderr, "error: attempted to access memory outside of stack range\n");
+                return 0;
+            }
+            else return ((int) stack[memloc]);
+
+        default:
+            printf("bad nodetype %c\n", a->nodetype);
+            return 0;
+    }
+}
+
+void dump_ast(struct ast *a, int level) {
 
     printf("%*s", 2*level, "");	/* indent to this level */
     level++;
@@ -304,22 +374,22 @@ void dumpast(struct ast *a, int level) {
     switch(a->nodetype) {
         /* constant */
         case 'n':
-            printf("number %4.4g\n", ((struct numval *)a)->number);
+            printf("number %4.4d\n", ((struct numval *)a)->number);
             return;
 
             /* expressions, comparisons, assignment*/
         case '+': case '-': case '*': case '/': case '=':
         case '1': case '2': case '3': case '4': case '5':
             printf("operation %c\n", a->nodetype);
-            dumpast(a->l, level);
-            dumpast(a->r, level);
+            dump_ast(a->l, level);
+            dump_ast(a->r, level);
             return;
 
             /* if statement, dump conditional and result */
         case 'i':
             printf("flow %c\n", a->nodetype);
-            dumpast( ((struct flow *)a)->cond, level);
-            dumpast( ((struct flow *)a)->then, level);
+            dump_ast( ((struct flow *)a)->cond, level);
+            dump_ast( ((struct flow *)a)->then, level);
             return;
 
             /* variable, register, and memory asts */
@@ -331,7 +401,7 @@ void dumpast(struct ast *a, int level) {
             return;
         case 'm':
             printf("mem ref\n");
-            dumpast(((struct memref *)a)->loc, level);
+            dump_ast(((struct memref *)a)->loc, level);
             return;
 
         default:
@@ -383,19 +453,48 @@ int verify_name(char *n, struct sym_list *sl) {
 
 // helper function, generates default built in registers,
 // will eventually be replaced when custom registers are implemented
-void generate_symbols() {
+void generate_start_env() {
 
-    NUM_SYM = 4;
-    symtab = malloc(sizeof (struct symbol *) * NUM_SYM);
+    /* 8 KB stack */
+    STACK_START = 0;
+    STACK_SIZE = 8192;
 
-    symtab[0].name = strdup("AC");
-    symtab[0].type = 0;
-    symtab[1].name = strdup("PC");
-    symtab[1].type = 0;
-    symtab[2].name = strdup("SP");
-    symtab[2].type = 0;
-    symtab[3].name = strdup("BP");
-    symtab[3].type = 0;
+    /* 2 KB code (each instruction treated as 1 byte in simulation) */
+    CODE_START = 0;
+    CODE_SIZE = 2048;
+
+    stack = malloc(sizeof (uint8_t) * STACK_SIZE - STACK_START);
+    code = malloc(sizeof (char *) * CODE_SIZE - CODE_START);
+
+    NUM_SPEC_REG = 4;
+    NUM_GEN_REG = 8;
+
+    spec_reg = malloc(sizeof (struct symbol) * NUM_SPEC_REG);
+    gen_reg  = malloc(sizeof (struct symbol) * NUM_GEN_REG);
+
+    spec_reg[0].name = strdup("AC");
+    spec_reg[0].type = 0;
+    spec_reg[0].value = 0;
+    spec_reg[1].name = strdup("PC");
+    spec_reg[1].type = 0;
+    spec_reg[1].value = 0;
+    spec_reg[2].name = strdup("SP");
+    spec_reg[2].type = 0;
+    spec_reg[2].value = 0;
+    spec_reg[3].name = strdup("BP");
+    spec_reg[3].type = 0;
+    spec_reg[3].value = 0;
+
+    for (int i = 0; i < NUM_GEN_REG; i++) {
+
+        /* TODO: if NUM_GEN_REG > 10, need to change how this is handled */
+        gen_reg[i].name = strdup("regx");
+        gen_reg[i].name[3] = i + '0';
+
+        gen_reg[i].type = 0;
+        gen_reg[i].value = 0;
+
+    }
 
 }
 
@@ -420,7 +519,7 @@ int main(int argc, char **argv) {
 
     /* generate default register and variable symbols */
 
-    generate_symbols();
+    generate_start_env();
 
     yyparse();
 

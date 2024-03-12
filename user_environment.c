@@ -9,27 +9,25 @@
 
 /* TODO: replace these all with globals (possibly global system_info struct) and allow instruction set to set values for each */
 
-/* 8 KB stack */
-#define STACK_SIZE 8192
-#define STACK_START 0
+/* default 8 KB stack */
+unsigned int STACK_SIZE;
+unsigned int STACK_START;
 
-/* 2 KB code (each instruction treated as 1 byte in simulation) */
-#define CODE_SIZE 2048
-#define CODE_START 0
+/* default 2 KB code (each instruction treated as 1 byte in simulation) */
+unsigned int CODE_SIZE;
+unsigned int CODE_START;
 
 #define INPUT_SIZE 256
-#define NUM_SPEC_REG 4
-#define NUM_GEN_REG 8
+#define REG_BUFF_SIZE 16
 
-unsigned char stack[STACK_SIZE];
-char *code[CODE_SIZE];
+uint8_t *stack;
+char **code;
 
 /* TODO: when adding custom registers to instruction set, allow for different sizes (and possibly different word size)
  * TODO ALSO: maybe assign all registers numbers and add conversion, then check for correct reg size array by number
  *
  * TODO IMPORTANT: get special purpose register table from other file, this one should only be gen purpose
  */
-struct symbol *reg[NUM_GEN_REG + NUM_SPEC_REG];
 
 /* tracks next available address in code array - not always same as PC in case of jumps */
 int code_index;
@@ -50,6 +48,9 @@ void run_user() {
     code[5] = "test2";
     code[26] = "test3";
     code[21] = "test4";
+
+    int test = run_instruction(strdup("movm reg1 AC"));
+    printf("%d\n", test);
 
     printf("> ");
 
@@ -74,10 +75,11 @@ void run_user() {
         if (*input == '.') done = run_dot(input);
         else {
             int check = run_instruction(input);
+            /* only increment PC and code_index here */
         }
 
         if (done) break;
-
+        /* TODO NOTE: If .file command only loads into mem, this will run everything in file */
         /* TODO: check that PC is within bounds, while it doesn't point to NULL, loop and keep running instructions */
 
         printf("> ");
@@ -87,7 +89,6 @@ void run_user() {
 
 void print_welcome() {
 
-    /* TODO: replace macros with globals once registers and code regions can be varied */
     printf("Welcome to the toy assembly interpreter.\n");
     print_system_info();
 
@@ -103,7 +104,7 @@ void print_welcome() {
 void print_spec_regs() {
 
     for (int i = 0; i < NUM_SPEC_REG; i++) {
-        printf("%s", symtab[i + 52].name);
+        printf("%s", spec_reg[i].name);
         if (i + 1 != NUM_SPEC_REG) printf(", ");
         else printf("\n");
     }
@@ -134,7 +135,7 @@ void print_help_message() {
     printf(".clear_stack [start address] [end address]    clear the contents of the stack between two addresses\n\n");
     printf(".clear_code [start address] [end address]     clear the contents of code memory between two addresses\n\n");
     printf(".clear_all                                    clear everything from stack and code memory\n\n");
-    printf(".file [filepath]                              run commands from file, only need file name if in same folder\n\n");
+    printf(".file [filepath]                              load commands from file into next available code address, only need file name if in same folder\n\n");
 
     printf("For language specific commands look in text document passed to interpreter\n\n\n");
 
@@ -153,6 +154,10 @@ int run_dot(char *input) {
         while (mask && *mask == ' ') mask++;
         run_print(0, mask);
     }
+    else if (!strcmp(input, ".print_regs")) {
+        while (mask && *mask == ' ') mask++;
+        run_print(2, mask);
+    }
     else if (!strcmp(input, ".clear_stack")) {
         while (mask && *mask == ' ') mask++;
         run_clear(1, mask);
@@ -161,9 +166,13 @@ int run_dot(char *input) {
         while (mask && *mask == ' ') mask++;
         run_clear(0, mask);
     }
-    else if (!strcmp(input, ".clear_all")) {
+    else if (!strcmp(input, ".clear_regs")) {
         while (mask && *mask == ' ') mask++;
         run_clear(2, mask);
+    }
+    else if (!strcmp(input, ".clear_all")) {
+        while (mask && *mask == ' ') mask++;
+        run_clear(3, mask);
     }
     else if (!strcmp(input, ".help")) {
         print_help_message();
@@ -184,6 +193,7 @@ int run_dot(char *input) {
  *
  * mode 0 = code
  *      1 = stack
+ *      2 = regs
  *
  * function is long but most of it is just checking error cases
  *
@@ -191,6 +201,28 @@ int run_dot(char *input) {
 void run_print(int type, char *args) {
 
     char *mask = args;
+
+    if (type == 2) {
+
+        if (mask) {
+            while(*mask == ' ') mask++;
+            if(*mask) {
+                fprintf(stderr, "error: .print_regs requires no parameters\n");
+                return;
+            }
+        }
+
+        for (int i = 0; i < NUM_SPEC_REG; i++) {
+            printf("%s = %d\n", spec_reg[i].name, spec_reg[i].value);
+        }
+        for (int i = 0; i < NUM_GEN_REG; i++) {
+            printf("%s = %d\n", gen_reg[i].name, gen_reg[i].value);
+        }
+
+        return;
+
+    }
+
 
     char *messages[2];
     messages[0] = "print_code";
@@ -317,14 +349,15 @@ void print_bin(char byte_val) {
  *
  * mode 0 = clear code
  *      1 = clear stack
- *      2 = clear all of both
+ *      2 = clear regs
+ *      3 = clear all of stack, code, and regs
  *
  */
 void run_clear(int type, char *args) {
 
-    if (type == 2) {
+    if (type == 3) {
 
-        while (args && *args) *args++;
+        while (args && *args) args++;
         if (args && *args) {
             fprintf(stderr, "error: .clear_all takes no parameters\n");
             return;
@@ -338,8 +371,24 @@ void run_clear(int type, char *args) {
             stack[i] = 0;
         }
 
-    }
+        for (int i = 0; i < NUM_SPEC_REG; i++) {
+            spec_reg[i].value = 0;
+        }
 
+        for (int i = 0; i < NUM_GEN_REG; i++) {
+            gen_reg[i].value = 0;
+        }
+
+    }
+    else if (type == 2) {
+        for (int i = 0; i < NUM_SPEC_REG; i++) {
+            spec_reg[i].value = 0;
+        }
+
+        for (int i = 0; i < NUM_GEN_REG; i++) {
+            gen_reg[i].value = 0;
+        }
+    }
     else {
 
         char *mask = args;
@@ -422,17 +471,180 @@ void run_clear(int type, char *args) {
 
 int run_instruction(char *instr) {
 
-    char *mask = instr;
+    struct sym_map reg_map[REG_BUFF_SIZE];
+    int num_reg_args = 0;
 
+
+    char *mask = instr;
     strsep(&mask, " ");
 
     struct command *c = get_command(instr);
+
+    /*
+    reg_map[0].dummy = c->args->sym;
+    reg_map[0].real = &gen_reg[0];
+
+    printf("%s %s\n", reg_map[0].dummy->name, reg_map[0].real->name);
+    */
 
     if (!c) {
         fprintf(stderr, "error: instruction not found\n");
         return 1;
     }
 
+    struct sym_list *sl = c->args;
+    struct sym_list *list_iter;
+
+    for (list_iter = sl; list_iter != NULL; list_iter = list_iter->next) {
+
+        while (mask && *mask == ' ') mask++;
+
+        char *mask2 = mask;
+        strsep(&mask2, " ");
+
+        if (!mask || !*mask) {
+            fprintf(stderr, "error: not enough arguments for instruction %s\n", instr);
+            return 1;
+        }
+
+        int check = 0;
+
+        if (list_iter->sym->type == 1) {
+            char *endptr;
+
+            errno = 0;
+            long var_val = strtol(mask, &endptr, 0);
+
+            if (errno || *endptr) {
+                fprintf(stderr, "error: argument for variable type instruction parameter must be numbers in base 10 or base 16 prepended with 0x\n");
+                return 1;
+            }
+
+            list_iter->sym->value = var_val;
+            check = 1;
+        }
+
+        if (!check) {
+            for (int i = 0; i < NUM_SPEC_REG; i++) {
+                if (!strcmp(spec_reg[i].name, mask)) {
+                    list_iter->sym->value = spec_reg[i].value;
+                    check = 1;
+                    reg_map[num_reg_args].dummy = list_iter->sym;
+                    reg_map[num_reg_args].real = &spec_reg[i];
+                    num_reg_args++;
+                }
+            }
+        }
+        if (!check) {
+            for (int i = 0; i < NUM_GEN_REG; i++) {
+                if (!strcmp(gen_reg[i].name, mask)) {
+                    list_iter->sym->value = gen_reg[i].value;
+                    check = 1;
+                    reg_map[num_reg_args].dummy = list_iter->sym;
+                    reg_map[num_reg_args].real = &gen_reg[i];
+                    num_reg_args++;
+                }
+            }
+        }
+
+        if (!check) {
+            fprintf(stderr, "error: invalid argument %s\n", mask);
+        }
+
+        printf("%s = ", mask);
+        printf("%s = ", list_iter->sym->name);
+        printf("%d\n", list_iter->sym->value);
+
+        mask = mask2;
+    }
+
+    while (mask && *mask == ' ') mask++;
+    if (mask) {
+        fprintf(stderr, "error: too many arguments for instruction %s\n", instr);
+        return 1;
+    }
+
+    int err = 0;
+
+    /* null terminate reg array, check that dummy isn't null to continue */
+    reg_map[num_reg_args].dummy = NULL;
+
+    for (struct ast_list *al = c->actions; al != NULL; al = al->next) {
+        err = run_action(sl, al->a, &reg_map[0]);
+        if (err) break;
+    }
+
+    return err;
+
+}
+
+int run_action(struct sym_list *sl, struct ast *a, struct sym_map *reg_map) {
+
+    /* if there's a conditional in the action, evaluate it first then either return or continue with the rest */
+    if (a->nodetype >= '1' && a->nodetype <= '5') {
+        int cond = eval_cmp(((struct flow *)a)->cond);
+        if (!cond) return 0;
+        else a = ((struct flow *)a)->then;
+    }
+
+    /* This should be entirely impossible, but added here because if
+     * it does happen it would be tough to tell why it breaks without this check
+     */
+    if (a->nodetype != '=') {
+        fprintf(stderr, "error: wrong node type for root of action\n");
+        return 1;
+    }
+
+    struct ast *left = a->l;
+    struct ast *right = a->r;
+
+    if (left->nodetype == 'm') {
+        int val = eval_ast(((struct memref *) left)->loc);
+        if (val < STACK_START || val > STACK_START + STACK_SIZE) {
+            fprintf(stderr, "error: attempted to access memory outside of stack range\n");
+            return 1;
+        }
+        /* TODO NOTE: not sure how strict I should be about this, maybe two different modes given in system info? */
+        else if (val % 4) {
+            fprintf(stderr, "error: alignment issue, 4 byte register values should be loaded into memory at locations divisible by 4\n");
+            return 1;
+        }
+
+        /* TODO: run some tests, does this add the whole int or does it try to condense to 1 byte? */
+        stack[val] = eval_ast(right);
+        return 0;
+    }
+    else if (left->nodetype == 'r') {
+
+        for (int i = 0; i < NUM_SPEC_REG; i++) {
+            if (!strcmp(spec_reg[i].name, ((struct symref *)left)->sym->name)) {
+                spec_reg[i].value = eval_ast(right);
+                /* TODO: add error case where eval fails/returns error code */
+                return 0;
+            }
+        }
+
+        for (int i = 0; i < REG_BUFF_SIZE; i++) {
+            if (!reg_map[i].dummy) break;
+
+            if (((struct symref *)left)->sym == reg_map[i].dummy) {
+                reg_map[i].real->value = eval_ast(right);
+                /* TODO: add error case where eval fails/returns error code */
+                return 0;
+            }
+        }
+
+        /* should be caught at instruction set level, but less confident about this one being impossible */
+        fprintf(stderr, "error: register being assigned to not found\n");
+        return 1;
+    }
+    /* Again this error should be caught at instruction set level,
+     * but if it somehow happens I want to be prepared.
+     */
+    else {
+        fprintf(stderr, "error: attempting to assign value to something other than register or memory location\n");
+        return 1;
+    }
 
 }
 

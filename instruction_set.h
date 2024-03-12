@@ -23,6 +23,11 @@ struct sym_list {
     struct sym_list *next;
 };
 
+struct sym_map {
+    struct symbol *dummy;
+    struct symbol *real;
+};
+
 #define NHASH 9997
 extern struct command commandtab[NHASH];
 
@@ -43,8 +48,19 @@ extern struct command commandtab[NHASH];
  * make all other symbols just specific to commands? TODO !!!!!!!
  *
  */
-extern uint32_t NUM_SYM;
-extern struct symbol *symtab;
+extern unsigned int NUM_SPEC_REG;
+extern unsigned int NUM_GEN_REG;
+extern struct symbol *spec_reg;
+extern struct symbol *gen_reg;
+
+extern unsigned int STACK_SIZE;
+extern unsigned int STACK_START;
+
+extern unsigned int CODE_SIZE;
+extern unsigned int CODE_START;
+
+extern uint8_t *stack;
+extern char **code;
 
 struct ast_list {
     struct ast *a;
@@ -77,7 +93,7 @@ struct command *get_command(char *name);
 // when user is exiting simulation
 void sym_list_free(struct sym_list *sl);
 void ast_list_free(struct ast_list *astl);
-void sym_table_free();
+void reg_tables_free();
 void command_table_free();
 void treefree(struct ast *);
 
@@ -90,7 +106,7 @@ void treefree(struct ast *);
  * i        - conditional
  * =        - assignment
  * v        - variable reference
- * r        - general purpose register reference
+ * r        - register reference
  * n        - number
  * m        - memory location
  *
@@ -111,7 +127,7 @@ struct flow {
 // nodetype n
 struct numval {
     char nodetype;
-    double number;
+    int number;
 };
 
 /**
@@ -142,7 +158,9 @@ struct ast *newsymref(char reftype, struct symbol *s);
 struct ast *newmemref(char nodetype, struct ast *loc);
 struct ast *newflow(struct ast *cond, struct ast *then);
 
-void dumpast(struct ast *a, int level);
+int eval_cmp(struct ast *a);
+int eval_ast(struct ast *a);
+void dump_ast(struct ast *a, int level);
 int verify_ast(struct ast *a, struct sym_list *sl);
 int verify_name(char *n, struct sym_list *sl);
 
@@ -161,6 +179,8 @@ void print_bin(char byte_val);
 
 /* helper functions for running commands */
 int run_instruction(char *instr);
+int run_action(struct sym_list *sl, struct ast *a, struct sym_map *reg_map);
+
 int run_dot(char *input);
 void run_print(int type, char *args);
 void run_clear(int type, char *args);
