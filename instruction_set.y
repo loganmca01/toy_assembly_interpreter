@@ -26,7 +26,6 @@
 %token NEWLINE
 %token DEFINE
 %token <s> VAR
-%token PC AC SP BP
 
 %nonassoc COND
 %right ASSIGN
@@ -73,12 +72,8 @@ command: DEFINE NAME arg_list '{' action_list '}'
                         }
 ;
 
-    // can be any special purpose or general purpose register
+    // TODO: go through and replace this with just REG everywhere
 register: REG           { $$ = $1; }
-    | AC                { $$ = &symtab[52]; }
-    | PC                { $$ = &symtab[53]; }
-    | SP                { $$ = &symtab[54]; }
-    | BP                { $$ = &symtab[55]; }
 ;
 
     // memory reference

@@ -26,8 +26,10 @@ char *code[CODE_SIZE];
 
 /* TODO: when adding custom registers to instruction set, allow for different sizes (and possibly different word size)
  * TODO ALSO: maybe assign all registers numbers and add conversion, then check for correct reg size array by number
+ *
+ * TODO IMPORTANT: get special purpose register table from other file, this one should only be gen purpose
  */
-int reg[NUM_GEN_REG + NUM_SPEC_REG];
+struct symbol *reg[NUM_GEN_REG + NUM_SPEC_REG];
 
 /* tracks next available address in code array - not always same as PC in case of jumps */
 int code_index;
@@ -75,6 +77,8 @@ void run_user() {
         }
 
         if (done) break;
+
+        /* TODO: check that PC is within bounds, while it doesn't point to NULL, loop and keep running instructions */
 
         printf("> ");
 
@@ -429,7 +433,6 @@ int run_instruction(char *instr) {
         return 1;
     }
 
-    for ()
 
 }
 

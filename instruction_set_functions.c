@@ -8,7 +8,9 @@
 #include <string.h>
 
 struct command commandtab[NHASH];
-struct symbol symtab[NUM_SYM];
+struct symbol *symtab;
+
+uint32_t NUM_SYM;
 
 // hash function for command, pretty simple
 static unsigned int command_hash(char *name)
@@ -109,6 +111,19 @@ struct sym_list *new_sym_list(struct symbol *sym, struct sym_list *next) {
     return sl;
 
 }
+
+struct symbol *newsym(char *name, int type) {
+
+    struct symbol *s = malloc(sizeof(struct symbol));
+
+    s->name = name;
+    s->type = type;
+    s->value = 0;
+
+    return s;
+
+}
+
 
 
 struct ast *newast(char nodetype, struct ast *l, struct ast *r)
@@ -317,7 +332,6 @@ void dumpast(struct ast *a, int level) {
         case 'm':
             printf("mem ref\n");
             dumpast(((struct memref *)a)->loc, level);
-            // TODO: maybe another print here instead? test later
             return;
 
         default:
@@ -367,29 +381,21 @@ int verify_name(char *n, struct sym_list *sl) {
 
 }
 
-// helper function, generates default register and variable symbols
-// will eventually be made less strict, less arbitrary
+// helper function, generates default built in registers,
+// will eventually be replaced when custom registers are implemented
 void generate_symbols() {
 
-    for (int i = 0; i < 26; i++) {
-        symtab[i].name = strdup("reg0");
-        symtab[i].name[3] = 97  + i;
-    }
+    NUM_SYM = 4;
+    symtab = malloc(sizeof (struct symbol *) * NUM_SYM);
 
-    for (int i = 26; i < 52; i++) {
-        symtab[i].name = strdup("var0");
-        symtab[i].name[3] = 71  + i;
-    }
-
-    symtab[52].name = strdup("AC");
-    symtab[53].name = strdup("PC");
-    symtab[54].name = strdup("SP");
-    symtab[55].name = strdup("BP");
-
-    for (int i = 56; i < NUM_SYM; i++) {
-        symtab[i].name = strdup("regx");
-        symtab[i].name[3] = i - 8;
-    }
+    symtab[0].name = strdup("AC");
+    symtab[0].type = 0;
+    symtab[1].name = strdup("PC");
+    symtab[1].type = 0;
+    symtab[2].name = strdup("SP");
+    symtab[2].type = 0;
+    symtab[3].name = strdup("BP");
+    symtab[3].type = 0;
 
 }
 
@@ -413,6 +419,7 @@ int main(int argc, char **argv) {
     yyin = fopen(argv[1], "r");
 
     /* generate default register and variable symbols */
+
     generate_symbols();
 
     yyparse();

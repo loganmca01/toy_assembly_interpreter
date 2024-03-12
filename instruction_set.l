@@ -27,17 +27,26 @@
 
 ":"        { return COND; }
 
-reg[a-z]            { yylval.s = &symtab[yytext[3] - 97]; return REG; }
-
 (?i:define)         { return DEFINE; }
-var[a-z]            { yylval.s = &symtab[yytext[3] - 71]; return VAR; }
 
-PC          { return PC; }
-AC          { return AC; }
-SP          { return SP; }
-BP          { return BP; }
-
-[a-zA-Z]+   { yylval.strval = strdup(yytext); return NAME; }
+[a-zA-Z]+   {
+                for (int i = 0; i < NUM_SYM; i++) {
+                    if (!strcmp(symtab[i].name, yytext)) {
+                        yylval.s = &symtab[i];
+                        return REG;
+                    }
+                }
+                if (!strncmp(yytext, "reg", 3)) {
+                    yylval.s = newsym(strdup(yytext), 0);
+                    return REG;
+                }
+                if (!strncmp(yytext, "var", 3)) {
+                    yylval.s = newsym(strdup(yytext), 1);
+                    return REG;
+                }
+                yylval.strval = strdup(yytext);
+                return NAME;
+            }
 
 -?[0-9]+    { yylval.d = atoi(yytext); return NUMBER; }
 0[xX][0-9a-fA-F]+   { yylval.d = (int)strtol(yytext + 2, NULL, 16); return NUMBER; }

@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdint.h>
 
 struct command {
     char *name;
@@ -6,8 +7,14 @@ struct command {
     struct sym_list *args;
 };
 
+/*
+ * symbol types
+ * 0 - register
+ * 1 - variable
+ */
 struct symbol {
-    double value;
+    int value;
+    int type;
     char *name;
 };
 
@@ -27,10 +34,17 @@ extern struct command commandtab[NHASH];
  */
 
 
-#define NUM_SYM 62
-extern struct symbol symtab[NUM_SYM];
-
-struct command *lookup(char*);
+/*
+ * TODO CONSIDER: should this symbol table be a hash table instead? and get rid of the
+ * dummy variables and registers and just let user use their own variable names?
+ *
+ * TODO CONSIDER: How do I differentiate between vars and registers if I do this?
+ * TODO CONSIDER: What if I make symbol table only for special purpose registers and
+ * make all other symbols just specific to commands? TODO !!!!!!!
+ *
+ */
+extern uint32_t NUM_SYM;
+extern struct symbol *symtab;
 
 struct ast_list {
     struct ast *a;
@@ -39,6 +53,7 @@ struct ast_list {
 
 // To be implemented, will eventually let user dictate more details in virtual environment
 
+/*
 struct system_information {
     int num_reg;
     int stack_start;
@@ -46,6 +61,7 @@ struct system_information {
     int heap_start;
     int heap_size;
 };
+*/
 
 struct sym_list *new_sym_list(struct symbol *sym, struct sym_list *next);
 struct ast_list *new_ast_list(struct ast *a, struct ast_list *next);
@@ -115,6 +131,8 @@ struct memref {
     char nodetype;
     struct ast *loc;
 };
+
+struct symbol *newsym(char *name, int type);
 
 // construct ast nodes, always cast back to ast pointer
 struct ast *newast(char nodetype, struct ast *l, struct ast *r);
