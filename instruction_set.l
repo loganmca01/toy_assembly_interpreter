@@ -30,10 +30,10 @@
 (?i:define)         { return DEFINE; }
 
 [a-zA-Z]+   {
-                /* TODO: add check for gen reg name, throw error */
+                /* TODO: figure out how to assign registers to point to symbols in args */
                 for (int i = 0; i < NUM_SPEC_REG; i++) {
                     if (!strcmp(spec_reg[i].name, yytext)) {
-                        yylval.s = &spec_reg[i];
+                        yylval.strval = strdup(yytext);
                         return REG;
                     }
                 }
@@ -44,11 +44,11 @@
                     }
                 }
                 if (!strncmp(yytext, "reg", 3)) {
-                    yylval.s = newsym(strdup(yytext), 0);
+                    yylval.strval = strdup(yytext);
                     return REG;
                 }
                 if (!strncmp(yytext, "var", 3)) {
-                    yylval.s = newsym(strdup(yytext), 1);
+                    yylval.strval = strdup(yytext);
                     return VAR;
                 }
                 yylval.strval = strdup(yytext);

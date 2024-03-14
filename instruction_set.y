@@ -10,6 +10,7 @@
 %define parse.error detailed
 
 %union {
+    /* TODO: remove unnecessary */
     struct ast *a;
     struct ast_list *al;
     struct symbol *s;
@@ -22,10 +23,10 @@
 
 %token <d> NUMBER
 %token <strval> NAME
-%token <s> REG
+%token <strval> REG
 %token NEWLINE
 %token DEFINE
-%token <s> VAR
+%token <strval> VAR
 
 %nonassoc COND
 %right ASSIGN
@@ -35,7 +36,6 @@
 %left '*' '/'
 
 %type <cmd> command
-%type <s> register
 %type <a> exp conditional action memory
 %type <sl> arg_list
 %type <al> action_list
@@ -53,7 +53,9 @@ command_list: /* nothing */         { command_no = 1; }
     // command - made up of definition, argument and list of actions in curly braces
 command: DEFINE NAME arg_list '{' action_list '}'
                         {
+                            // TODO: fix symref assignments in here
                             int check = 0, count = 0;
+
                             for (struct ast_list *mask = $5; mask; mask = mask->next)
                             {
                                 count++;
@@ -72,29 +74,26 @@ command: DEFINE NAME arg_list '{' action_list '}'
                         }
 ;
 
-    // TODO: go through and replace this with just REG everywhere
-register: REG           { $$ = $1; }
-;
 
     // memory reference
 memory: '(' exp ')'        { $$ = newmemref('m', $2); }
-
 ;
 
    // list of register and variable arguments
 arg_list:    /* nothing */      { $$ = NULL; }
-    | arg_list register         { if ($1) { $1->next = new_sym_list($2, NULL); $$ = $1;} else { $$ = new_sym_list($2, NULL); } }
-    | arg_list VAR              { if ($1) { $1->next = new_sym_list($2, NULL); $$ = $1;} else $$ = new_sym_list($2, NULL); }
+    | arg_list REG              { if ($1) { $1 = add_sym($1, new_sym_list(newsym($2, 0), NULL)); $$ = $1;} else { $$ = new_sym_list(newsym($2, 0), NULL); } }
+    | arg_list VAR              { if ($1) { $1 = add_sym($1, new_sym_list(newsym($2, 1), NULL)); $$ = $1;} else $$ = new_sym_list(newsym($2, 1), NULL); }
 ;
 
     // expression - any number, memory reference, register, variable, operation, or comparison
+    // TODO IDEA: assign symrefs to point to null, then reassign to args later in above rule
 exp: exp CMP exp                { $$ = newcmp($2, $1, $3); }
     | exp '+' exp               { $$ = newast('+', $1, $3); }
     | exp '-' exp               { $$ = newast('-', $1, $3); }
     | exp '*' exp               { $$ = newast('*', $1, $3); }
     | exp '/' exp               { $$ = newast('*', $1, $3); }
-    | VAR                       { $$ = newsymref('v', $1); }
-    | register                  { $$ = newsymref('r', $1); }
+    | VAR                       { $$ = newsymref('v', NULL, $1); }
+    | REG                       { $$ = newsymref('r', NULL, $1); }
     | memory                    { $$ = $1; }
     | NUMBER                    { $$ = newnum($1); }
 ;
@@ -102,11 +101,11 @@ exp: exp CMP exp                { $$ = newcmp($2, $1, $3); }
     // conditional expression, helps with action
 conditional: COND exp           { $$ = newflow($2, NULL); }
 ;
-
+    // TODO: figure out how to assign registers to point to symbols in args
     // some variety of assignment operation, ends with semicolon
-action: register ASSIGN exp ';'            { $$ = newast('=', newsymref('r', $1), $3); }
+action: REG ASSIGN exp ';'            { $$ = newast('=', newsymref('r', NULL, $1), $3); }
     | memory ASSIGN exp ';'                { $$ = newast('=', $1, $3); }
-    | register ASSIGN exp conditional ';'  { struct ast *front = newast('=', newsymref('r', $1), $3);
+    | REG ASSIGN exp conditional ';'  { struct ast *front = newast('=', newsymref('r', NULL, $1), $3);
                                              ((struct flow *) $4)->then = front;
                                              $$ = $4;
                                            }

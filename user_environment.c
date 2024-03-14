@@ -30,27 +30,14 @@ char **code;
  */
 
 /* tracks next available address in code array - not always same as PC in case of jumps */
-int code_index;
+int pc_loc;
 
 void run_user() {
 
     print_welcome();
 
-    /*
-     * temporary test for dot commands till instructions can run
-     */
-
-    stack[0] = 25;
-    stack[3] = 166;
-    stack[8] = 3;
-
-    code[0] = "test1";
-    code[5] = "test2";
-    code[26] = "test3";
-    code[21] = "test4";
-
-    int test = run_instruction(strdup("movm reg1 AC"));
-    printf("%d\n", test);
+    /* eventually will be set based on where PC spec reg is in system info from original parse */
+    pc_loc = 1;
 
     printf("> ");
 
@@ -59,32 +46,72 @@ void run_user() {
 
     char *input = &input_store[0];
 
-    // for edge case testing (user enters line more than 256 bytes) add second pointer to spot, compare two.
+    // for edge case error catching (user enters line more than 256 bytes) add second pointer to spot, compare two.
 
     int done = 0;
 
     while(getline(&input, &size, stdin)) {
-
-        while (*input == ' ') input++;
 
         input[strcspn(input, "\r\n")] = '\0';
 
         /* move past leading spaces */
         while(*input == ' ') input++;
 
-        if (*input == '.') done = run_dot(input);
+        char *full_input = strdup(input);
+
+        if (*input == '.') {
+            done = run_dot(input);
+            free(full_input);
+        }
         else {
-            int check = run_instruction(input);
-            /* only increment PC and code_index here */
+            if (spec_reg[pc_loc].value < CODE_START || spec_reg[pc_loc].value > (CODE_START + CODE_SIZE)) {
+                fprintf(stderr, "error: PC pointing at address outside of code\n");
+                /* might be better to return (or goto?) here, cause a similar error while running instructions will probably need to return (or use goto?) instead of break */
+                goto end_of_loops;
+            }
+            code[spec_reg[pc_loc].value] = full_input;
         }
 
         if (done) break;
-        /* TODO NOTE: If .file command only loads into mem, this will run everything in file */
-        /* TODO: check that PC is within bounds, while it doesn't point to NULL, loop and keep running instructions */
+
+        while(code[spec_reg[pc_loc].value]) {
+
+            if((spec_reg[pc_loc].value < CODE_START) || (spec_reg[pc_loc].value > (CODE_START + CODE_SIZE))) {
+                fprintf(stderr, "error: PC pointing at address outside of code\n");
+                /* need to break out of both loops here */
+                goto end_of_loops;
+            }
+
+            char *tmp = strdup(code[spec_reg[pc_loc].value]);
+            int tmpi = spec_reg[pc_loc].value;
+
+            int check = 0;
+
+            if (tmp[0] == '_') {
+                check = run_underscore(tmp);
+                spec_reg[pc_loc].value++;
+            }
+            else {
+                int check = run_instruction(tmp);
+                /* increment only if PC isn't changed */
+                if (tmpi == spec_reg[pc_loc].value) spec_reg[pc_loc].value++;
+            }
+
+            free(tmp);
+
+            if (check) {
+                fprintf(stderr, "error thrown by code address %d from instruction: %s\n", tmpi, code[tmpi]);
+                goto end_of_loops;
+            }
+
+        }
 
         printf("> ");
 
     }
+
+    end_of_loops:;
+
 }
 
 void print_welcome() {
@@ -92,7 +119,7 @@ void print_welcome() {
     printf("Welcome to the toy assembly interpreter.\n");
     print_system_info();
 
-    printf("For information about the dot commands available to you use .help\n\n");
+    printf("For information about the system commands available to you use .help\n\n");
 
     printf("Keep in mind that dot commands are not loaded into code memory, and should\n"
            "be ignored when calculating instruction locations for jumps.\n\n");
@@ -130,12 +157,14 @@ void print_help_message() {
 
     printf("Dot commands available:\n\n");
     printf(".help                                         you're here now\n\n");
-    printf(".print_stack [start address] [end address]    print the contents of stack between two addresses\n\n");
-    printf(".print_code [start address] [end address]     print the contents of code memory between two addresses\n\n");
     printf(".clear_stack [start address] [end address]    clear the contents of the stack between two addresses\n\n");
     printf(".clear_code [start address] [end address]     clear the contents of code memory between two addresses\n\n");
     printf(".clear_all                                    clear everything from stack and code memory\n\n");
     printf(".file [filepath]                              load commands from file into next available code address, only need file name if in same folder\n\n");
+
+    printf("_print_stack [start address] [end address]    print the contents of stack between two addresses\n\n");
+    printf("_print_code [start address] [end address]     print the contents of code memory between two addresses\n\n");
+    printf("_exit                                         exit current instructions, functions the same as jumping PC to after last instruction\n\n");
 
     printf("For language specific commands look in text document passed to interpreter\n\n\n");
 
@@ -146,19 +175,7 @@ int run_dot(char *input) {
     char *mask = input;
     strsep(&mask, " ");
 
-    if (!strcmp(input, ".print_stack")) {
-        while (mask && *mask == ' ') mask++;
-        run_print(1, mask);
-    }
-    else if (!strcmp(input, ".print_code")) {
-        while (mask && *mask == ' ') mask++;
-        run_print(0, mask);
-    }
-    else if (!strcmp(input, ".print_regs")) {
-        while (mask && *mask == ' ') mask++;
-        run_print(2, mask);
-    }
-    else if (!strcmp(input, ".clear_stack")) {
+    if (!strcmp(input, ".clear_stack")) {
         while (mask && *mask == ' ') mask++;
         run_clear(1, mask);
     }
@@ -177,6 +194,9 @@ int run_dot(char *input) {
     else if (!strcmp(input, ".help")) {
         print_help_message();
     }
+    else if (!strcmp(input, ".file")) {
+        load_file(mask);
+    }
     else if (!strcmp(input, ".quit")) {
         return 1;
     }
@@ -185,6 +205,33 @@ int run_dot(char *input) {
         fprintf(stderr, "error: invalid dot command\n");
     }
     return 0;
+}
+
+int run_underscore(char *input) {
+
+    char *mask = input;
+    strsep(&mask, " ");
+
+    if (!strcmp(input, "_print_stack")) {
+        while (mask && *mask == ' ') mask++;
+        run_print(1, mask);
+    }
+    else if (!strcmp(input, "_print_code")) {
+        while (mask && *mask == ' ') mask++;
+        run_print(0, mask);
+    }
+    else if (!strcmp(input, "_print_regs")) {
+        while (mask && *mask == ' ') mask++;
+        run_print(2, mask);
+    }
+    else if (!strcmp(input, "_exit")) {
+        while(code[spec_reg[pc_loc].value]) {
+            spec_reg[pc_loc].value++;
+        }
+    }
+
+
+
 }
 
 /*
@@ -198,7 +245,7 @@ int run_dot(char *input) {
  * function is long but most of it is just checking error cases
  *
  */
-void run_print(int type, char *args) {
+int run_print(int type, char *args) {
 
     char *mask = args;
 
@@ -208,7 +255,7 @@ void run_print(int type, char *args) {
             while(*mask == ' ') mask++;
             if(*mask) {
                 fprintf(stderr, "error: .print_regs requires no parameters\n");
-                return;
+                return 1;
             }
         }
 
@@ -219,7 +266,7 @@ void run_print(int type, char *args) {
             printf("%s = %d\n", gen_reg[i].name, gen_reg[i].value);
         }
 
-        return;
+        return 0;
 
     }
 
@@ -232,7 +279,7 @@ void run_print(int type, char *args) {
 
     if (!mask) {
         fprintf(stderr, "error: invalid number of parameters, proper form .%s [start address] [end address]\n", messages[type]);
-        return;
+        return 1;
     }
 
     char *endptr;
@@ -243,15 +290,15 @@ void run_print(int type, char *args) {
     /* two error cases, not a number and number out of range of stack */
     if (errno || *endptr) {
         fprintf(stderr, "error: parameters for .%s must be numbers in base 10 or base 16 prepended with 0x\n", messages[type]);
-        return;
+        return 1;
     }
     else if (type && (start_val < STACK_START || start_val > STACK_START + STACK_SIZE)) {
         fprintf(stderr, "error: parameters for .print_stack must be within stack range %d to %d\n", STACK_START, STACK_SIZE + STACK_START);
-        return;
+        return 1;
     }
     else if (!type && (start_val < CODE_START || start_val > CODE_START + CODE_SIZE)) {
         fprintf(stderr, "error: parameters for .print_code must be within code range %d to %d\n", CODE_START, CODE_START + CODE_SIZE);
-        return;
+        return 1;
     }
 
     char *mask2 = mask;
@@ -262,7 +309,7 @@ void run_print(int type, char *args) {
         while(*mask2 == ' ') mask2++;
         if(*mask2) {
             fprintf(stderr, "error: invalid number of parameters, proper form .%s [start address] [end address]\n", messages[type]);
-            return;
+            return 1;
         }
     }
 
@@ -272,19 +319,19 @@ void run_print(int type, char *args) {
     /* same error cases as first arg, added case for arg less than first */
     if (errno || *endptr) {
         fprintf(stderr, "error: parameters for .%s must be numbers in base 10 or base 16 prepended with 0x\n", messages[type]);
-        return;
+        return 1;
     }
     else if (type && (end_val < STACK_START || end_val > STACK_START + STACK_SIZE)) {
         fprintf(stderr, "error: parameters for .print_stack must be within stack range %d to %d\n", STACK_START, STACK_SIZE + STACK_START);
-        return;
+        return 1;
     }
     else if (!type && (end_val < CODE_START || end_val > CODE_START + CODE_SIZE)) {
         fprintf(stderr, "error: parameters for .print_code must be within code range %d to %d\n", CODE_START, CODE_START + CODE_SIZE);
-        return;
+        return 1;
     }
     else if (end_val < start_val) {
         fprintf(stderr, "error: second parameter of .%s must be >= first\n", messages[type]);
-        return;
+        return 1;
     }
 
     if (type) {
@@ -315,9 +362,8 @@ void run_print(int type, char *args) {
         }
 
     }
-
-
     printf("\n");
+    return 0;
 
 }
 
@@ -469,23 +515,54 @@ void run_clear(int type, char *args) {
     }
 }
 
+void load_file(char *filepath) {
+
+    char *mask = filepath;
+
+    strsep(&mask, " ");
+
+    while (mask && *mask == ' ') mask++;
+
+    if (mask || *mask) {
+        fprintf(stderr, "error: only one argument expected for .file\n");
+        return;
+    }
+
+    FILE *source = fopen(filepath, "r");
+
+    if (!source) {
+        fprintf(stderr, "error: file not found\n");
+        return;
+    }
+
+    char input_store[INPUT_SIZE];
+    size_t size = sizeof(char) * INPUT_SIZE;
+
+    char *input = &input_store[0];
+
+    // for edge case testing (user enters line more than 256 bytes) add second pointer to spot, compare two.
+
+    int done = 0;
+
+    while(getline(&input, &size, source)) {
+
+        input[strcspn(input, "\r\n")] = '\0';
+
+
+    }
+
+}
+
+
 int run_instruction(char *instr) {
 
     struct sym_map reg_map[REG_BUFF_SIZE];
     int num_reg_args = 0;
 
-
     char *mask = instr;
     strsep(&mask, " ");
 
     struct command *c = get_command(instr);
-
-    /*
-    reg_map[0].dummy = c->args->sym;
-    reg_map[0].real = &gen_reg[0];
-
-    printf("%s %s\n", reg_map[0].dummy->name, reg_map[0].real->name);
-    */
 
     if (!c) {
         fprintf(stderr, "error: instruction not found\n");
@@ -549,11 +626,8 @@ int run_instruction(char *instr) {
 
         if (!check) {
             fprintf(stderr, "error: invalid argument %s\n", mask);
+            return 1;
         }
-
-        printf("%s = ", mask);
-        printf("%s = ", list_iter->sym->name);
-        printf("%d\n", list_iter->sym->value);
 
         mask = mask2;
     }
@@ -570,7 +644,7 @@ int run_instruction(char *instr) {
     reg_map[num_reg_args].dummy = NULL;
 
     for (struct ast_list *al = c->actions; al != NULL; al = al->next) {
-        err = run_action(sl, al->a, &reg_map[0]);
+        err = run_action(al->a, &reg_map[0]);
         if (err) break;
     }
 
@@ -578,10 +652,10 @@ int run_instruction(char *instr) {
 
 }
 
-int run_action(struct sym_list *sl, struct ast *a, struct sym_map *reg_map) {
+int run_action(struct ast *a, struct sym_map *reg_map) {
 
     /* if there's a conditional in the action, evaluate it first then either return or continue with the rest */
-    if (a->nodetype >= '1' && a->nodetype <= '5') {
+    if (a->nodetype == 'i') {
         int cond = eval_cmp(((struct flow *)a)->cond);
         if (!cond) return 0;
         else a = ((struct flow *)a)->then;
@@ -610,8 +684,13 @@ int run_action(struct sym_list *sl, struct ast *a, struct sym_map *reg_map) {
             return 1;
         }
 
-        /* TODO: run some tests, does this add the whole int or does it try to condense to 1 byte? */
-        stack[val] = eval_ast(right);
+        /* TODO: figure out how little/big endian affects this and make it portable */
+        int tmp = eval_ast(right);
+
+        for (int i = 0; i < 4; i++) {
+            stack[val + i] = (tmp >> (8 * (3 - i))) & 0xff;
+        }
+
         return 0;
     }
     else if (left->nodetype == 'r') {
@@ -628,6 +707,7 @@ int run_action(struct sym_list *sl, struct ast *a, struct sym_map *reg_map) {
             if (!reg_map[i].dummy) break;
 
             if (((struct symref *)left)->sym == reg_map[i].dummy) {
+
                 reg_map[i].real->value = eval_ast(right);
                 /* TODO: add error case where eval fails/returns error code */
                 return 0;

@@ -82,6 +82,7 @@ struct system_information {
 struct sym_list *new_sym_list(struct symbol *sym, struct sym_list *next);
 struct ast_list *new_ast_list(struct ast *a, struct ast_list *next);
 
+struct sym_list *add_sym(struct sym_list *orig, struct sym_list *addit);
 struct ast_list *add_ast(struct ast_list *orig, struct ast_list *addit);
 
 // add - adds command to symbol table
@@ -140,6 +141,7 @@ struct numval {
 struct symref {
     char nodetype;
     struct symbol *sym;
+    char *name;
 };
 
 // nodetype m
@@ -154,7 +156,7 @@ struct symbol *newsym(char *name, int type);
 struct ast *newast(char nodetype, struct ast *l, struct ast *r);
 struct ast *newnum(double d);
 struct ast *newcmp(char cmptype, struct ast *l, struct ast *r);
-struct ast *newsymref(char reftype, struct symbol *s);
+struct ast *newsymref(char reftype, struct symbol *s, char *name);
 struct ast *newmemref(char nodetype, struct ast *loc);
 struct ast *newflow(struct ast *cond, struct ast *then);
 
@@ -162,7 +164,7 @@ int eval_cmp(struct ast *a);
 int eval_ast(struct ast *a);
 void dump_ast(struct ast *a, int level);
 int verify_ast(struct ast *a, struct sym_list *sl);
-int verify_name(char *n, struct sym_list *sl);
+int verify_ref(struct symref *symr, struct sym_list *sl);
 
 /*
  * User environment
@@ -179,12 +181,14 @@ void print_bin(char byte_val);
 
 /* helper functions for running commands */
 int run_instruction(char *instr);
-int run_action(struct sym_list *sl, struct ast *a, struct sym_map *reg_map);
+int run_action(struct ast *a, struct sym_map *reg_map);
 
 int run_dot(char *input);
-void run_print(int type, char *args);
+int run_underscore(char *input);
+int run_print(int type, char *args);
 void run_clear(int type, char *args);
 
+void load_file(char *filepath);
 
 // from flex, bison
 extern FILE *yyin;

@@ -99,6 +99,18 @@ struct ast_list *add_ast(struct ast_list *orig, struct ast_list *addit) {
     return orig;
 }
 
+struct sym_list *add_sym(struct sym_list *orig, struct sym_list *addit) {
+
+    struct sym_list *mask = orig;
+    while(mask->next) {
+        mask = mask->next;
+    }
+
+    mask->next = addit;
+    return orig;
+
+}
+
 struct sym_list *new_sym_list(struct symbol *sym, struct sym_list *next) {
 
     struct sym_list *sl = malloc(sizeof(struct sym_list));
@@ -169,7 +181,7 @@ struct ast *newcmp(char cmptype, struct ast *l, struct ast *r)
     return a;
 }
 
-struct ast *newsymref(char reftype, struct symbol *s) {
+struct ast *newsymref(char reftype, struct symbol *s, char *name) {
 
     struct symref *a = malloc(sizeof(struct symref));
 
@@ -180,6 +192,7 @@ struct ast *newsymref(char reftype, struct symbol *s) {
 
     a->nodetype = reftype;
     a->sym = s;
+    a->name = name;
     return (struct ast *)a;
 
 }
@@ -330,7 +343,7 @@ int eval_ast(struct ast *a) {
     }
 
     switch(a->nodetype) {
-        /* constant */
+            /* constant */
         case 'n':
             return (((struct numval *)a)->number);
 
@@ -344,7 +357,8 @@ int eval_ast(struct ast *a) {
         case '/':
             return eval_ast(a->l) / eval_ast(a->r);
 
-            /* variable, register, and memory asts */
+            // TODO: figure out how to assign registers to point to symbols in args
+            /* variable and register asts */
         case 'v': case 'r':
             return (((struct symref *)a)->sym->value);
         case 'm':
@@ -422,14 +436,14 @@ int verify_ast(struct ast *a, struct sym_list *sl) {
         case '1': case '2': case '3': case '4': case '5':
             return verify_ast(a->l, sl) && verify_ast(a->r, sl);
 
-            /* if statement, dump conditional and result */
+            /* if statement, check conditional and result */
         case 'i':
             return verify_ast(((struct flow *)a)->cond, sl) && verify_ast(((struct flow *)a)->then, sl);
 
             /* variable, register, and memory asts */
         case 'v':
         case 'r':
-            return verify_name(((struct symref *)a)->sym->name, sl);
+            return verify_ref(((struct symref *)a), sl);
         case 'm':
             return verify_ast(((struct memref *)a)->loc, sl);
         default:
@@ -438,13 +452,21 @@ int verify_ast(struct ast *a, struct sym_list *sl) {
     }
 }
 
-int verify_name(char *n, struct sym_list *sl) {
+int verify_ref(struct symref *symr, struct sym_list *sl) {
 
-    if (!strcmp(n, "AC") || !strcmp(n, "PC") || !strcmp(n, "SP") || !strcmp(n, "BP"))
-        return 1;
-    for (struct sym_list *mask = sl; mask; mask = mask->next)
+    for (int i = 0; i < NUM_SPEC_REG; i++) {
+        if (!strcmp(spec_reg[i].name, symr->name)) {
+            symr->sym = &spec_reg[i];
+            return 1;
+        }
+    }
+
+    for (; sl; sl = sl->next)
     {
-        if (!strcmp(mask->sym->name, n)) return 1;
+        if (!strcmp(sl->sym->name, symr->name)) {
+            symr->sym = sl->sym;
+            return 1;
+        }
     }
 
     return 0;
