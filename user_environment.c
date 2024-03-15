@@ -89,7 +89,7 @@ void run_user() {
 
             if (tmp[0] == '_') {
                 check = run_underscore(tmp);
-                spec_reg[pc_loc].value++;
+                if (check != 2) spec_reg[pc_loc].value++;
             }
             else {
                 int check = run_instruction(tmp);
@@ -99,7 +99,7 @@ void run_user() {
 
             free(tmp);
 
-            if (check) {
+            if (check == 1) {
                 fprintf(stderr, "error thrown by code address %d from instruction: %s\n", tmpi, code[tmpi]);
                 goto end_of_loops;
             }
@@ -214,23 +214,24 @@ int run_underscore(char *input) {
 
     if (!strcmp(input, "_print_stack")) {
         while (mask && *mask == ' ') mask++;
-        run_print(1, mask);
+        return run_print(1, mask);
     }
     else if (!strcmp(input, "_print_code")) {
         while (mask && *mask == ' ') mask++;
-        run_print(0, mask);
+        return run_print(0, mask);
     }
     else if (!strcmp(input, "_print_regs")) {
         while (mask && *mask == ' ') mask++;
-        run_print(2, mask);
+        return run_print(2, mask);
     }
     else if (!strcmp(input, "_exit")) {
         while(code[spec_reg[pc_loc].value]) {
             spec_reg[pc_loc].value++;
         }
+        return 2;
     }
 
-
+    return 0;
 
 }
 
@@ -523,7 +524,7 @@ void load_file(char *filepath) {
 
     while (mask && *mask == ' ') mask++;
 
-    if (mask || *mask) {
+    if (mask && *mask) {
         fprintf(stderr, "error: only one argument expected for .file\n");
         return;
     }
@@ -544,10 +545,34 @@ void load_file(char *filepath) {
 
     int done = 0;
 
+    int cnt = spec_reg[pc_loc].value;
+
     while(getline(&input, &size, source)) {
+
+        int eof = 0;
+
+        if (input[strlen(input) - 1] != '\n') eof = 1;
+        while(*input == ' ') input++;
 
         input[strcspn(input, "\r\n")] = '\0';
 
+        if (!input || !*input) {
+            break;
+        }
+
+        if (input[0] == '.') {
+            fprintf(stderr, "error: attempting to load dot command into memory from file, only instructions and _ commands allowed in file input\n");
+            return;
+        }
+
+        if((cnt < CODE_START) || (cnt > (CODE_START + CODE_SIZE))) {
+            fprintf(stderr, "error: attempting to load instruction to location outside code memory (PC is outside range)\n");
+            return;
+        }
+
+        code[cnt++] = strdup(input);
+
+        if (eof) break;
 
     }
 

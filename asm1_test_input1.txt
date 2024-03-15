@@ -1,0 +1,6 @@
+lodi reg0 24
+lodi reg1 28
+add reg0 reg1
+mova reg3
+_print_regs
+_exit
