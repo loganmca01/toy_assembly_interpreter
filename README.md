@@ -3,54 +3,66 @@ Customizable interpreter for toy assembly languages for use in computer organiza
 
 # How to use:
 
-NOTE: Functionality is limited at this point, as I'm finishing up the user environment. Instructions can't be run in user environment yet, but ASTs are generated properly
-
 1. Make sure you have Flex and Bison installed, comes pre installed in most linux distros, otherwise use these:
     https://www.gnu.org/software/bison/
     https://github.com/westes/flex
 
 2. Run make
-3. run ./isa_interpreter [file - for sample use test2.txt]
+3. run ./isa_interpreter [filepath]
+4. run assembly instructions specified in file from command line or from text file
+
+# System Commands
+
+.help                                      --- print information about system and available commands\
+\
+.clear_stack [start address] [end address] --- clear the contents of the stack between two addresses\
+\
+.clear_code [start address] [end address]  --- clear the contents of code memory between two addresses\
+\
+.clear_all                                 --- clear everything from stack and code memory\
+\
+.file [filepath]                           --- load commands from file into next available code address, only need file name if in same folder\
+\
+_print_stack [start address] [end address] --- print the contents of stack between two addresses\
+\
+_print_code [start address] [end address]  --- print the contents of code memory between two addresses\
+\
+_exit                                      --- exit current instructions, functions the same as jumping PC to after last instruction\
+\
+NOTE: underscore commands are loaded into code memory, dot commands are not and therefore cannot be run from a file.
 
 
 # Register Transfer Notation:
 
-I designed this RTN to be as readable as possible for humans, as it's designed for use in classes. That being said, there are
-several restrictions on the syntax in this first version of the parser. The basic command structure looks like this:
+Command structure:
 
-define [command name] [arguments] {
+define [command name] [arguments] {\
 [action 1];\
 [action 2];\
-[action 3];
+[action 3];\
 }
 
-The arguments are limited to dummy variables and registers of the form var[a-z] and reg[a-z]. This will eventually
-be changed to take any user variable names, but for now it lets me pre-generate a symbol table for the dummy arguments which
-makes locating them in the table, and assigning them values when commands are run much simpler.
+- Arguments are limited to dummy variables and registers that start with "var" or "reg".
 
-The actions must be separated by a new line and are in the form:
-
+- Actions must be separated by a new line, and are in the form:\
 [register/mem location] := [expression/register/mem location] [optional conditional]
 
-memory is referenced with parentheses, so (rega) means the contents of the location of the value rega in the stack.
+- memory is referenced with parentheses, so (rega) means the value on the stack at the location stored in rega.
 
-expressions can be any operation between registers, dummy variables, and actual numbers. 
+- expressions can be any operation between registers, dummy variables, and actual numbers. 
 
-conditionals are represented by a : followed by some comparison.
+- conditionals are represented by a : followed by some comparison operation (<, >, ==, <=, >=).
 
-Look at the file test2.txt for an example of how this all fits together.
+- The file test_asm1.txt shows an example of a toy language written in this RTN
 
-# Recent updates
+# Version 1.0 notes
+- First full working version, somewhat limited user customization of environment but instruction sets can be loaded and commands can be run
+- Not memory safe, next priority is removing any possible memory leaks
 
-- Fixed Yacc grammar surrounding memory, got rid of unnecessary rules and replaced with better, more broad rule
-- Added much more specific error messages for issues with instruction set
-- Began proper implementation of user environment
-
-
+  
 # What's next:
 
-- Finish user environment for initial version of software
-- add in more customization surrounding default registers, stack location in memory array, flags, word size, etc.
+- Add in more customization surrounding built-in registers, stack start/size, code start/size, flags, word size, different register sizes etc.
 - Run detailed tests using valgrind, get rid of all remaining memory leaks
 - Fix inefficient areas of implementation, work on flattening lists/trees into array based implementation
 
