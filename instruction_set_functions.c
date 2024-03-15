@@ -363,11 +363,17 @@ int eval_ast(struct ast *a) {
             return (((struct symref *)a)->sym->value);
         case 'm':
             int memloc = eval_ast(((struct memref *)a)->loc);
-            if (memloc < STACK_START || memloc > STACK_START + STACK_SIZE) {
+            if (memloc < STACK_START || memloc > STACK_START + STACK_SIZE + 3) {
                 fprintf(stderr, "error: attempted to access memory outside of stack range\n");
                 return 0;
             }
-            else return ((int) stack[memloc]);
+            else {
+                int tot = 0;
+                for (int i = 0; i < 4; i++) {
+                    tot += ((int) stack[memloc + i]) << ((3 - i) * 8);
+                }
+                return tot;
+            }
 
         default:
             printf("bad nodetype %c\n", a->nodetype);
