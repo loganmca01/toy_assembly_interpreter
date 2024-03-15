@@ -3,8 +3,8 @@ Customizable interpreter for toy assembly languages for use in computer organiza
 
 # How to use:
 
-1. Make sure you have Flex and Bison installed, comes pre installed in most linux distros, otherwise use these:
-    https://www.gnu.org/software/bison/
+1. Make sure you have Flex and Bison installed, comes pre installed in most linux distros, otherwise use these:\
+    https://www.gnu.org/software/bison/\
     https://github.com/westes/flex
 
 2. Run make
