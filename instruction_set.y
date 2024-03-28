@@ -79,6 +79,7 @@ command: DEFINE NAME arg_list '{' action_list '}'
 memory: '(' exp ')'        { $$ = newmemref('m', $2); }
 ;
 
+    /* TODO: add memory references to arguments? */
    // list of register and variable arguments
 arg_list:    /* nothing */      { $$ = NULL; }
     | arg_list REG              { if ($1) { $1 = add_sym($1, new_sym_list(newsym($2, 0), NULL)); $$ = $1;} else { $$ = new_sym_list(newsym($2, 0), NULL); } }

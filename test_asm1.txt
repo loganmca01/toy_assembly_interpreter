@@ -7,7 +7,7 @@ define lodi rega vara {rega := vara;}
 define loda rega vara {rega := (vara);}
 define lorr rega regb vara {rega := (regb + vara);}
 define stoa rega vara {(vara) := rega;}
-define stor rega regb vara {(regb + vara) := regb;}
+define stor rega regb vara {(regb + vara) := rega;}
 define stoi vara varb {(varb) := vara;}
 define jmp vara {PC := vara;}
 define jmpz vara {PC := vara : AC == 0;}

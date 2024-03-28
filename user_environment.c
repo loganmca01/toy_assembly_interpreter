@@ -363,7 +363,7 @@ int run_print(int type, char *args) {
         }
 
     }
-    printf("\n");
+    printf("\n\n");
     return 0;
 
 }
