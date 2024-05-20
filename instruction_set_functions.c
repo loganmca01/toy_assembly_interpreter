@@ -6,72 +6,47 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include <errno.h>
 
-struct command commandtab[NHASH];
-struct symbol *spec_reg;
-struct symbol *gen_reg;
+struct command command_table[MAX_COMMAND];
+int num_commands;
 
-unsigned int NUM_SPEC_REG;
-unsigned int NUM_GEN_REG;
-
-// hash function for command, pretty simple
-static unsigned int command_hash(char *name)
-{
-    unsigned int hash = 11;
-    char c;
-
-    while((c = *name++)) hash = hash * 17 + c;
-
-    return hash % NHASH;
-}
+struct system_information sys_info;
 
 void add_command(char *name, struct ast_list *actions, struct sym_list *args) {
 
-    struct command *c = &commandtab[command_hash(name)];
+    if (num_commands == MAX_COMMAND) {
+        yyerror("command table overflow. max 1024 allowed\n");
+        return;
+    }
 
-    int scount = 0;
+    int i;
+    struct command c;
 
-    while(scount++ < NHASH) {
+    for (i = 0; i < num_commands; i++) {
+
+        c = command_table[i];
 
         /* command found */
-        if(c->name && !strcmp(c->name, name)) {
+        if(!strcmp(c.name, name)) {
             yyerror("command with name %s already defined\n", name);
-        }
-
-        /* new command */
-        if(!c->name) {
-            c->name = name;
-            c->actions = actions;
-            c->args = args;
             return;
         }
-
-        if(++c >= commandtab+NHASH) c = commandtab;
-    }
-    yyerror("command table overflow\n");
-
-}
-
-struct command *get_command(char *name) {
-    struct command *c = &commandtab[command_hash(name)];
-
-    int scount = 0;
-
-    while(scount++ < NHASH) {
-        /* command found */
-
-
-        if(c->name && !strcmp(c->name, name)) {
-            return c;
+        else if (strcmp(c.name, name) > 0) {
+            for (int j = num_commands; j > i; j--) {
+                command_table[j] = command_table[j - 1];
+            }
+            command_table[i].name = name;
+            command_table[i].args = args;
+            command_table[i].actions = actions;
+            return;
         }
-
-        /* command doesn't exist */
-        if(!c->name) {
-            return NULL;
-        }
-
-        if(++c >= commandtab+NHASH) c = commandtab;
     }
+
+    command_table[i].name = name;
+    command_table[i].args = args;
+    command_table[i].actions = actions;
+
 }
 
 struct ast_list *new_ast_list(struct ast *a, struct ast_list *next) {
@@ -99,18 +74,6 @@ struct ast_list *add_ast(struct ast_list *orig, struct ast_list *addit) {
     return orig;
 }
 
-struct sym_list *add_sym(struct sym_list *orig, struct sym_list *addit) {
-
-    struct sym_list *mask = orig;
-    while(mask->next) {
-        mask = mask->next;
-    }
-
-    mask->next = addit;
-    return orig;
-
-}
-
 struct sym_list *new_sym_list(struct symbol *sym, struct sym_list *next) {
 
     struct sym_list *sl = malloc(sizeof(struct sym_list));
@@ -123,6 +86,18 @@ struct sym_list *new_sym_list(struct symbol *sym, struct sym_list *next) {
     sl->sym = sym;
     sl->next = next;
     return sl;
+
+}
+
+struct sym_list *add_sym(struct sym_list *orig, struct sym_list *addit) {
+
+    struct sym_list *mask = orig;
+    while(mask->next) {
+        mask = mask->next;
+    }
+
+    mask->next = addit;
+    return orig;
 
 }
 
@@ -254,23 +229,22 @@ void ast_list_free(struct ast_list *astl) {
 
 void reg_tables_free() {
 
-    for (int i = 0; i < NUM_SPEC_REG; i++) {
-        free(spec_reg[i].name);
+    for (int i = 0; i < sys_info.num_spec_reg; i++) {
+        free(sys_info.spec_regs[i]);
     }
-    for (int i = 0; i < NUM_GEN_REG; i++) {
-        free(spec_reg[i].name);
+    for (int i = 0; i < sys_info.num_gen_reg; i++) {
+        free(sys_info.gen_regs[i]);
     }
 }
 
 void command_table_free() {
 
-    for (int i = 0; i < NHASH; i++) {
-        // TODO: test if this actually works as condition
-        if (commandtab[i].name) {
-            free(commandtab[i].name);
-            ast_list_free(commandtab[i].actions);
-            sym_list_free(commandtab[i].args);
-        }
+    for (int i = 0; i < num_commands; i++) {
+
+        free(command_table[i].name);
+        ast_list_free(command_table[i].actions);
+        sym_list_free(command_table[i].args);
+
     }
 }
 
@@ -309,77 +283,6 @@ void treefree(struct ast *a) {
 
 }
 
-int eval_cmp(struct ast *a) {
-    if(!a) {
-        fprintf(stderr, "missing cond node\n");
-        return 0;
-    }
-
-    switch(a->nodetype) {
-
-        case '1':
-            return eval_ast(a->r) > eval_ast(a->l);
-        case '2':
-            return eval_ast(a->r) < eval_ast(a->l);
-        case '3':
-            return eval_ast(a->r) == eval_ast(a->l);
-        case '4':
-            return eval_ast(a->r) >= eval_ast(a->l);
-        case '5':
-            return eval_ast(a->r) <= eval_ast(a->l);
-        default:
-            fprintf(stderr, "error: invalid comparison type\n");
-            return 0;
-
-    }
-
-}
-
-int eval_ast(struct ast *a) {
-
-    if(!a) {
-        fprintf(stderr, "missing ast node\n");
-        return 0;
-    }
-
-    switch(a->nodetype) {
-            /* constant */
-        case 'n':
-            return (((struct numval *)a)->number);
-
-            /* expressions */
-        case '+':
-            return eval_ast(a->l) + eval_ast(a->r);
-        case '-':
-            return eval_ast(a->l) - eval_ast(a->r);
-        case '*':
-            return eval_ast(a->l) * eval_ast(a->r);
-        case '/':
-            return eval_ast(a->l) / eval_ast(a->r);
-
-            // TODO: figure out how to assign registers to point to symbols in args
-            /* variable and register asts */
-        case 'v': case 'r':
-            return (((struct symref *)a)->sym->value);
-        case 'm':
-            int memloc = eval_ast(((struct memref *)a)->loc);
-            if (memloc < STACK_START || memloc > STACK_START + STACK_SIZE + 3) {
-                fprintf(stderr, "error: attempted to access memory outside of stack range\n");
-                return 0;
-            }
-            else {
-                int tot = 0;
-                for (int i = 0; i < 4; i++) {
-                    tot += ((int) stack[memloc + i]) << ((3 - i) * 8);
-                }
-                return tot;
-            }
-
-        default:
-            printf("bad nodetype %c\n", a->nodetype);
-            return 0;
-    }
-}
 
 void dump_ast(struct ast *a, int level) {
 
@@ -460,9 +363,9 @@ int verify_ast(struct ast *a, struct sym_list *sl) {
 
 int verify_ref(struct symref *symr, struct sym_list *sl) {
 
-    for (int i = 0; i < NUM_SPEC_REG; i++) {
-        if (!strcmp(spec_reg[i].name, symr->name)) {
-            symr->sym = &spec_reg[i];
+    /* todo: replace NUM_SPEC_REG with appropriate part of system_info global struct */
+    for (int i = 0; i < sys_info.num_spec_reg; i++) {
+        if (!strcmp(sys_info.spec_regs[i], symr->name)) {
             return 1;
         }
     }
@@ -470,7 +373,6 @@ int verify_ref(struct symref *symr, struct sym_list *sl) {
     for (; sl; sl = sl->next)
     {
         if (!strcmp(sl->sym->name, symr->name)) {
-            symr->sym = sl->sym;
             return 1;
         }
     }
@@ -481,46 +383,36 @@ int verify_ref(struct symref *symr, struct sym_list *sl) {
 
 // helper function, generates default built in registers,
 // will eventually be replaced when custom registers are implemented
-void generate_start_env() {
+void generate_default_system() {
 
     /* 8 KB stack */
-    STACK_START = 0;
-    STACK_SIZE = 8192;
+    sys_info.stack_start = 0;
+    sys_info.stack_size = 8192;
 
     /* 2 KB code (each instruction treated as 1 byte in simulation) */
-    CODE_START = 0;
-    CODE_SIZE = 2048;
+    sys_info.code_start = 0;
+    sys_info.code_size = 2048;
 
-    stack = malloc(sizeof (uint8_t) * STACK_SIZE - STACK_START);
-    code = malloc(sizeof (char *) * CODE_SIZE - CODE_START);
+    sys_info.num_spec_reg = 4;
+    sys_info.num_gen_reg = 8;
 
-    NUM_SPEC_REG = 4;
-    NUM_GEN_REG = 8;
+    sys_info.spec_regs = malloc(sizeof (char *) * sys_info.num_spec_reg);
+    sys_info.gen_regs = malloc(sizeof (char *) * sys_info.num_gen_reg);
 
-    spec_reg = malloc(sizeof (struct symbol) * NUM_SPEC_REG);
-    gen_reg  = malloc(sizeof (struct symbol) * NUM_GEN_REG);
+    sys_info.spec_regs[0] = strdup("AC");
 
-    spec_reg[0].name = strdup("AC");
-    spec_reg[0].type = 0;
-    spec_reg[0].value = 0;
-    spec_reg[1].name = strdup("PC");
-    spec_reg[1].type = 0;
-    spec_reg[1].value = 0;
-    spec_reg[2].name = strdup("SP");
-    spec_reg[2].type = 0;
-    spec_reg[2].value = 0;
-    spec_reg[3].name = strdup("BP");
-    spec_reg[3].type = 0;
-    spec_reg[3].value = 0;
+    sys_info.spec_regs[1] = strdup("PC");
 
-    for (int i = 0; i < NUM_GEN_REG; i++) {
+    sys_info.spec_regs[2] = strdup("SP");
+
+    sys_info.spec_regs[3] = strdup("BP");
+
+
+    for (int i = 0; i < sys_info.num_gen_reg; i++) {
 
         /* TODO: if NUM_GEN_REG > 10, need to change how this is handled */
-        gen_reg[i].name = strdup("regx");
-        gen_reg[i].name[3] = i + '0';
-
-        gen_reg[i].type = 0;
-        gen_reg[i].value = 0;
+        sys_info.gen_regs[i] = strdup("regx");
+        sys_info.gen_regs[i][3] = i + '0';
 
     }
 
@@ -539,36 +431,35 @@ void yyerror(char *s, ...) {
 }
 
 extern int yyparse(void);
-extern void run_user();
 
 int main(int argc, char **argv) {
+
+    if (argc != 3 || strcmp(&argv[2][strlen(argv[2]) - 4], ".isa")) {
+        fprintf(stderr, "error: invalid number of arguments. correct usage: ./isa_interpreter [instruction_set] [output file name (extension .isa)]\n");
+    }
+
     /* Process command line args*/
     yyin = fopen(argv[1], "r");
 
-    /* generate default register and variable symbols */
-
-    generate_start_env();
+    /* generate default system information, can be altered in passed rtn file */
+    generate_default_system();
 
     yyparse();
 
     fclose(yyin);
 
-    /*
+    FILE *out = fopen(argv[2], "w");
 
-    char *com_name = argv[2];
-
-    struct command *c = get_command(com_name);
-
-    struct ast_list *ca = c->actions;
-
-    while (ca) {
-        dumpast(ca->a, 0);
-        ca = ca->next;
+    if (errno > 0) {
+        fprintf(stderr,"error opening output file\n");
+        exit(1);
     }
 
-    */
 
-    run_user();
+
+    //fprintf(out, "testing\n");
+
+    fclose(out);
 
     return 0;
 }

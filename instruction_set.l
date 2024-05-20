@@ -15,6 +15,9 @@
 ")" |
 "{" |
 "}" |
+"[" |
+"]" |
+"," |
 ";"         { return yytext[0]; }
 
 ">"         { yylval.c = '1'; return CMP; }
@@ -30,15 +33,14 @@
 (?i:define)         { return DEFINE; }
 
 [a-zA-Z]+   {
-                /* TODO: figure out how to assign registers to point to symbols in args */
-                for (int i = 0; i < NUM_SPEC_REG; i++) {
-                    if (!strcmp(spec_reg[i].name, yytext)) {
+                for (int i = 0; i < sys_info.num_spec_reg; i++) {
+                    if (!strcmp(sys_info.spec_regs[i], yytext)) {
                         yylval.strval = strdup(yytext);
                         return REG;
                     }
                 }
-                for (int i = 0; i < NUM_GEN_REG; i++) {
-                    if (!strcmp(gen_reg[i].name, yytext)) {
+                for (int i = 0; i < sys_info.num_gen_reg; i++) {
+                    if (!strcmp(sys_info.gen_regs[i], yytext)) {
                         yyerror("unavailable dummy register name %s", yytext);
                         return YYerror;
                     }

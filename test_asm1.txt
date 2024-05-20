@@ -4,25 +4,25 @@ define neg rega {rega := 0 - rega;}
 define mova rega {rega := AC;}
 define movr rega regb {regb := rega;}
 define lodi rega vara {rega := vara;}
-define loda rega vara {rega := (vara);}
-define lorr rega regb vara {rega := (regb + vara);}
-define stoa rega vara {(vara) := rega;}
-define stor rega regb vara {(regb + vara) := rega;}
-define stoi vara varb {(varb) := vara;}
+define loda rega vara {rega := [vara];}
+define lorr rega regb vara {rega := [regb + vara];}
+define stoa rega vara {[vara] := rega;}
+define stor rega regb vara {[regb + vara] := rega;}
+define stoi vara varb {[varb] := vara;}
 define jmp vara {PC := vara;}
 define jmpz vara {PC := vara : AC == 0;}
 define jmpn vara {PC := vara : AC < 0;}
 define call vara {
-(SP) := PC;
+[SP] := PC;
 PC := vara;
 SP := SP + 2;
-(SP) := BP;
+[SP] := BP;
 BP := SP;
 SP := SP + 2;
 }
 define ret {
 SP := BP;
-BP := (SP);
+BP := [SP];
 SP := SP + 2;
-PC := (SP);
+PC := [SP];
 }
