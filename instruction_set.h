@@ -14,11 +14,12 @@ struct command {
  * symbol types
  * 0 - register
  * 1 - variable
+ *
+ * todo: remove value from symbols, and fix all bugs that creates. no longer needed since user env elsewhere
  */
 struct symbol {
-    int value;
-    int type;
     char *name;
+    int type;
 };
 
 struct sym_list {
@@ -44,6 +45,9 @@ struct system_information {
     int stack_size;
     int code_start;
     int code_size;
+
+    char lit_sym;
+    char reg_sym;
 };
 
 extern struct system_information sys_info;
@@ -130,7 +134,7 @@ struct ast *newsymref(char reftype, struct symbol *s, char *name);
 struct ast *newmemref(char nodetype, struct ast *loc);
 struct ast *newflow(struct ast *cond, struct ast *then);
 
-void dump_ast(struct ast *a, int level);
+void dump_ast(FILE *f, struct ast *a);
 int verify_ast(struct ast *a, struct sym_list *sl);
 int verify_ref(struct symref *symr, struct sym_list *sl);
 

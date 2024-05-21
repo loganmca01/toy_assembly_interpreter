@@ -52,7 +52,7 @@ command_list: /* nothing */         { command_no = 1; }
     | command_list error NEWLINE    {  }
 
 ;
-
+    /* todo: second rule for no arg_list, then remove empty from arglist to allow for comma separation */
     // command - made up of definition, argument and list of actions in curly braces
 command: DEFINE NAME arg_list '{' action_list '}'
                         {
@@ -74,6 +74,7 @@ command: DEFINE NAME arg_list '{' action_list '}'
                                 add_command($2, $5, $3);
                             }
                         }
+
 ;
 
 

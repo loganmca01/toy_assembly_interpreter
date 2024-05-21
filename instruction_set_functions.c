@@ -39,6 +39,7 @@ void add_command(char *name, struct ast_list *actions, struct sym_list *args) {
             command_table[i].name = name;
             command_table[i].args = args;
             command_table[i].actions = actions;
+            num_commands++;
             return;
         }
     }
@@ -46,6 +47,7 @@ void add_command(char *name, struct ast_list *actions, struct sym_list *args) {
     command_table[i].name = name;
     command_table[i].args = args;
     command_table[i].actions = actions;
+    num_commands++;
 
 }
 
@@ -107,7 +109,6 @@ struct symbol *newsym(char *name, int type) {
 
     s->name = name;
     s->type = type;
-    s->value = 0;
 
     return s;
 
@@ -283,52 +284,44 @@ void treefree(struct ast *a) {
 
 }
 
-
-void dump_ast(struct ast *a, int level) {
-
-    printf("%*s", 2*level, "");	/* indent to this level */
-    level++;
-
-    if(!a) {
-        printf("NULL\n");
-        return;
-    }
+/* prints ast to file following a BFS */
+void dump_ast(FILE *f, struct ast *a) {
 
     switch(a->nodetype) {
         /* constant */
         case 'n':
-            printf("number %4.4d\n", ((struct numval *)a)->number);
+            fprintf(f, "[n %d]", ((struct numval *)a)->number);
             return;
 
             /* expressions, comparisons, assignment*/
         case '+': case '-': case '*': case '/': case '=':
         case '1': case '2': case '3': case '4': case '5':
-            printf("operation %c\n", a->nodetype);
-            dump_ast(a->l, level);
-            dump_ast(a->r, level);
+            fprintf(f, "[%c]", a->nodetype);
+            dump_ast(f, a->l);
+            dump_ast(f, a->r);
             return;
 
             /* if statement, dump conditional and result */
         case 'i':
-            printf("flow %c\n", a->nodetype);
-            dump_ast( ((struct flow *)a)->cond, level);
-            dump_ast( ((struct flow *)a)->then, level);
+            fprintf(f, "[i]");
+            dump_ast(f, ((struct flow *)a)->cond);
+            dump_ast(f, ((struct flow *)a)->then);
             return;
 
             /* variable, register, and memory asts */
         case 'v':
-            printf("var ref %s\n", ((struct symref *)a)->sym->name);
+            fprintf(f, "[v %s]", ((struct symref *)a)->name);
             return;
         case 'r':
-            printf("reg ref %s\n", ((struct symref *)a)->sym->name);
+            fprintf(f, "[r %s]", ((struct symref *)a)->name);
             return;
         case 'm':
-            printf("mem ref\n");
-            dump_ast(((struct memref *)a)->loc, level);
+            fprintf(f, "[m]");
+            dump_ast(f, ((struct memref *)a)->loc);
             return;
 
         default:
-            printf("bad nodetype %c\n", a->nodetype);
+            fprintf(stderr, "bad nodetype %c\n", a->nodetype);
             return;
     }
 }
@@ -416,6 +409,9 @@ void generate_default_system() {
 
     }
 
+    sys_info.lit_sym = '$';
+    sys_info.reg_sym = '%';
+
 }
 
 int command_no;
@@ -438,6 +434,8 @@ int main(int argc, char **argv) {
         fprintf(stderr, "error: invalid number of arguments. correct usage: ./isa_interpreter [instruction_set] [output file name (extension .isa)]\n");
     }
 
+    num_commands = 0;
+
     /* Process command line args*/
     yyin = fopen(argv[1], "r");
 
@@ -455,9 +453,50 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
+    struct command c;
+
+    fprintf(out, "SYSTEM\n");
+
+    fprintf(out, "special register count: %d\n", sys_info.num_spec_reg);
+
+    for (int i = 0; i < sys_info.num_spec_reg; i++) {
+        fprintf(out, "%s ", sys_info.spec_regs[i]);
+    }
 
 
-    //fprintf(out, "testing\n");
+    fprintf(out, "\ngeneral register count: %d\n", sys_info.num_gen_reg);
+
+    for (int i = 0; i < sys_info.num_gen_reg; i++) {
+        fprintf(out, "%s ", sys_info.gen_regs[i]);
+    }
+
+    fprintf(out, "\nstack start, size: %d, %d\n", sys_info.stack_start, sys_info.stack_size);
+    fprintf(out, "code start, size: %d, %d\n", sys_info.code_start, sys_info.code_size);
+
+    fprintf(out, "literal value symbol: %c\n", sys_info.lit_sym);
+    fprintf(out, "register value symbol: %c\n", sys_info.reg_sym);
+
+    for (int i = 0; i < num_commands; i++) {
+
+        fprintf(out, "COMMAND NO. %d\n", i+1);
+
+        c = command_table[i];
+
+        fprintf(out, "command name: %s\n", c.name);
+        fprintf(out, "command arguments: ");
+
+        for (struct sym_list *s = c.args; s != NULL; s = s->next) {
+            fprintf(out, "[%d %s] ", s->sym->type, s->sym->name);
+        }
+        fprintf(out, "\n");
+
+        for (struct ast_list *a = c.actions; a != NULL; a = a->next) {
+            dump_ast(out, a->a);
+            fprintf(out, "\n");
+        }
+
+
+    }
 
     fclose(out);
 
