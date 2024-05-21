@@ -74,7 +74,26 @@ command: DEFINE NAME arg_list '{' action_list '}'
                                 add_command($2, $5, $3);
                             }
                         }
+      | DEFINE NAME '{' action_list '}'
+                        {
+                            int check = 0, count = 0;
 
+                            for (struct ast_list *mask = $4; mask; mask = mask->next)
+                            {
+                                count++;
+                                if (!verify_ast(mask->a, NULL))
+                                {
+                                    yyerror("use of undefined var/reg in command %d action %d", command_no, count);
+                                    check = 1;
+                                    break;
+                                }
+                            }
+
+                            if (!check)
+                            {
+                                add_command($2, $4, NULL);
+                            }
+                        }
 ;
 
 
@@ -83,9 +102,10 @@ memory: '[' exp ']'        { $$ = newmemref('m', $2); }
 ;
 
    // list of register and variable arguments
-arg_list:    /* nothing */      { $$ = NULL; }
-    | arg_list REG              { if ($1) { $1 = add_sym($1, new_sym_list(newsym($2, 0), NULL)); $$ = $1;} else { $$ = new_sym_list(newsym($2, 0), NULL); } }
-    | arg_list VAR              { if ($1) { $1 = add_sym($1, new_sym_list(newsym($2, 1), NULL)); $$ = $1;} else $$ = new_sym_list(newsym($2, 1), NULL); }
+arg_list: REG                   { $$ = new_sym_list(newsym($1, 0), NULL); }
+    | VAR                       { $$ = new_sym_list(newsym($1, 1), NULL); }
+    | arg_list ',' REG          { $$ = add_sym($1, new_sym_list(newsym($3, 0), NULL)); }
+    | arg_list ',' VAR          { $$ = add_sym($1, new_sym_list(newsym($3, 1), NULL)); }
 ;
 
     // expression - any number, memory reference, register, variable, operation, or comparison
