@@ -1,81 +1,97 @@
 SYSTEM
-special register count: 4
-AC PC SP BP 
-general register count: 8
-reg0 reg1 reg2 reg3 reg4 reg5 reg6 reg7 
-stack start, size: 0, 8192
-code start, size: 0, 2048
-literal value symbol: $
-register value symbol: %
-COMMAND NO. 1
-command name: add
-command arguments: [0 rega] [0 regb] 
-[=][r AC][+][r rega][r regb]
-COMMAND NO. 2
-command name: call
-command arguments: [1 vara] 
+register-count: 12
+register-names: R0 R1 R2 R3 R4 R5 R6 R7 AC SP BP PC 
+program-counter-location: 11
+stack-start-size: 0 8192
+code-start-size: 8192 1024
+literal-value-symbol: $
+register-value-symbol: %
+
+
+COMMAND-NO 1
+command-name: add
+command-arguments: [0 rega][0 regb]
+[=][r AC][+][v rega][v regb]
+
+COMMAND-NO 2
+command-name: call
+command-arguments: [0 vara]
 [=][m][r SP][r PC]
 [=][r PC][v vara]
 [=][r SP][+][r SP][n 2]
 [=][m][r SP][r BP]
 [=][r BP][r SP]
 [=][r SP][+][r SP][n 2]
-COMMAND NO. 3
-command name: jmp
-command arguments: [1 vara] 
+
+COMMAND-NO 3
+command-name: jmp
+command-arguments: [0 vara]
 [=][r PC][v vara]
-COMMAND NO. 4
-command name: jmpn
-command arguments: [1 vara] 
+
+COMMAND-NO 4
+command-name: jmpn
+command-arguments: [0 vara]
 [i][2][r AC][n 0][=][r PC][v vara]
-COMMAND NO. 5
-command name: jmpz
-command arguments: [1 vara] 
+
+COMMAND-NO 5
+command-name: jmpz
+command-arguments: [0 vara]
 [i][3][r AC][n 0][=][r PC][v vara]
-COMMAND NO. 6
-command name: loda
-command arguments: [0 rega] [1 vara] 
+
+COMMAND-NO 6
+command-name: loda
+command-arguments: [1 rega][0 vara]
 [=][r rega][m][v vara]
-COMMAND NO. 7
-command name: lodi
-command arguments: [0 rega] [1 vara] 
+
+COMMAND-NO 7
+command-name: lodi
+command-arguments: [1 rega][0 vara]
 [=][r rega][v vara]
-COMMAND NO. 8
-command name: lorr
-command arguments: [0 rega] [0 regb] [1 vara] 
-[=][r rega][m][+][r regb][v vara]
-COMMAND NO. 9
-command name: mova
-command arguments: [0 rega] 
+
+COMMAND-NO 8
+command-name: lorr
+command-arguments: [1 rega][0 regb][0 vara]
+[=][r rega][m][+][v regb][v vara]
+
+COMMAND-NO 9
+command-name: mova
+command-arguments: [1 rega]
 [=][r rega][r AC]
-COMMAND NO. 10
-command name: movr
-command arguments: [0 rega] [0 regb] 
-[=][r regb][r rega]
-COMMAND NO. 11
-command name: neg
-command arguments: [0 rega] 
-[=][r rega][-][n 0][r rega]
-COMMAND NO. 12
-command name: ret
-command arguments: 
+
+COMMAND-NO 10
+command-name: movr
+command-arguments: [0 rega][1 regb]
+[=][r regb][v rega]
+
+COMMAND-NO 11
+command-name: neg
+command-arguments: [1 rega]
+[=][r rega][-][n 0][v rega]
+
+COMMAND-NO 12
+command-name: ret
+command-arguments: 
 [=][r SP][r BP]
 [=][r BP][m][r SP]
 [=][r SP][+][r SP][n 2]
 [=][r PC][m][r SP]
-COMMAND NO. 13
-command name: stoa
-command arguments: [0 rega] [1 vara] 
-[=][m][v vara][r rega]
-COMMAND NO. 14
-command name: stoi
-command arguments: [1 vara] [1 varb] 
+
+COMMAND-NO 13
+command-name: stoa
+command-arguments: [0 rega][0 vara]
+[=][m][v vara][v rega]
+
+COMMAND-NO 14
+command-name: stoi
+command-arguments: [0 vara][0 varb]
 [=][m][v varb][v vara]
-COMMAND NO. 15
-command name: stor
-command arguments: [0 rega] [0 regb] [1 vara] 
-[=][m][+][r regb][v vara][r rega]
-COMMAND NO. 16
-command name: sub
-command arguments: [0 rega] [0 regb] 
-[=][r AC][-][r rega][r regb]
+
+COMMAND-NO 15
+command-name: stor
+command-arguments: [0 rega][0 regb][0 vara]
+[=][m][+][v regb][v vara][v rega]
+
+COMMAND-NO 16
+command-name: sub
+command-arguments: [0 rega][0 regb]
+[=][r AC][-][v rega][v regb]

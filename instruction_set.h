@@ -32,14 +32,18 @@ struct ast_list {
     struct ast_list *next;
 };
 
-// To be implemented, will eventually let user dictate more details in virtual environment
 
+struct memory_region {
+
+    int start;
+    int end;
+
+};
 
 struct system_information {
-    int num_spec_reg;
-    int num_gen_reg;
-    char **spec_regs;
-    char **gen_regs;
+    int num_regs;
+    int pc_loc;
+    char **regs;
 
     int stack_start;
     int stack_size;
@@ -68,7 +72,7 @@ void add_command(char *name, struct ast_list *actions, struct sym_list *args);
 // when user is exiting simulation
 void sym_list_free(struct sym_list *sl);
 void ast_list_free(struct ast_list *astl);
-void reg_tables_free();
+void reg_table_free();
 void command_table_free();
 void treefree(struct ast *);
 

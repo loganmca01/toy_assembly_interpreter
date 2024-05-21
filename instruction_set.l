@@ -30,16 +30,24 @@
 
 ":"        { return COND; }
 
-(?i:define)         { return DEFINE; }
+(?i:define)                         { return DEFINE; }
+(?i:stack)                          { return STACK; }
+(?i:code)                           { return CODE; }
+(?i:registers)                      { return REGS; }
+(?i:pc_location)                    { return PC_LOC; }
+(?i:literal_symbol)                 { return LITERAL_SYMBOL; }
+(?i:register_symbol)                { return REGISTER_SYMBOL; }
 
-[a-zA-Z]+   {
 
-                for (int i = 0; i < sys_info.num_gen_reg; i++) {
-                    if (!strcmp(sys_info.gen_regs[i], yytext)) {
-                        yyerror("can't use general purpose register name %s as argument", yytext);
+[a-zA-Z][a-zA-Z0-9]+   {
+                /* todo: add checking for register names in parser rather than lexer
+                for (int i = 0; i < sys_info.num_regs; i++) {
+                    if (!strcmp(sys_info.regs[i], yytext)) {
+                        yyerror("%s is an existing register and can't be used as an argument", yytext);
                         return YYerror;
                     }
                 }
+                */
 
                 yylval.strval = strdup(yytext);
                 return NAME;
@@ -51,5 +59,5 @@
 
 [ \t\r]     {}
 \n          { return NEWLINE; }
-.           { printf("unknown character %c\n", *yytext); }
+.           { yylval.c = yytext[0]; return OTHER_CHAR; }
 

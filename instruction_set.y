@@ -3,7 +3,10 @@
 %{
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "instruction_set.h"
+
+char *tmp[64];
 
 %}
 
@@ -24,10 +27,18 @@
 %token <strval> NAME
 %token NEWLINE
 %token DEFINE
+%token STACK
+%token CODE
+%token REGS
+%token PC_LOC
+%token LITERAL_SYMBOL
+%token REGISTER_SYMBOL
+%token <c> OTHER_CHAR
 
 %nonassoc COND
 %right ASSIGN
 %nonassoc <c> CMP
+%right NEWLINE
 
 %left '+' '-'
 %left '*' '/'
@@ -38,26 +49,59 @@
 %type <sl> arg_list
 %type <al> action_list
 
-%start command_list
+%start system
 %%
+    /* todo: support for different memory regions using segmentation of one central stack, including code in machine language */
+system: reg_info linebreak command_list                                                                 {}
+    |   reg_info linebreak symbols_info linebreak command_list                                          {}
+    |   stack_info linebreak code_info linebreak reg_info linebreak command_list                        {}
+    |   stack_info linebreak code_info linebreak reg_info linebreak symbols_info linebreak command_list {}
+;
 
+stack_info: STACK NUMBER ',' NUMBER   { sys_info.stack_start = $2; sys_info.stack_size = $4; }
+        |   STACK NUMBER NUMBER       { sys_info.stack_start = $2; sys_info.stack_size = $3; }
+;
 
+code_info: CODE NUMBER ',' NUMBER    { sys_info.code_start = $2; sys_info.code_size = $4; }
+        |  CODE NUMBER NUMBER        { sys_info.code_start = $2; sys_info.code_size = $3; }
+;
 
+reg_info: REGS reg_list linebreak PC_LOC NUMBER {
+                                                    sys_info.regs = malloc(sizeof (char *) * sys_info.num_regs);
+                                                    memcpy(sys_info.regs, tmp, sizeof (char *) * sys_info.num_regs);
+                                                    sys_info.pc_loc = $5;
+                                                }
+;
+
+reg_list: NAME                  { tmp[0] = $1; sys_info.num_regs = 1; }
+        | reg_list ',' NAME     { tmp[sys_info.num_regs++] = $3; }
+        | reg_list NAME         { tmp[sys_info.num_regs++] = $2; }
+;
+
+symbols_info: LITERAL_SYMBOL OTHER_CHAR linebreak REGISTER_SYMBOL OTHER_CHAR { sys_info.lit_sym = $2; sys_info.reg_sym = $5; }
+;
+
+linebreak: NEWLINE             {}
+        |  NEWLINE linebreak   {}
+;
+
+opt_linebreak: /* */            {}
+            |  linebreak        {}
+;
 
     // command list - starting symbol, entire input file should be part of it
-command_list: /* nothing */         { command_no = 1; }
-    | command_list command NEWLINE  { command_no++; }
-    | command_list command          { command_no++; }
-    | command_list error NEWLINE    {  }
-
+command_list: /* nothing */             { command_no = 1; }
+    | command_list command linebreak    { command_no++; }
+    | command_list command              { command_no++; }
+    | command_list error linebreak      {}
 ;
-    /* todo: second rule for no arg_list, then remove empty from arglist to allow for comma separation */
+
     // command - made up of definition, argument and list of actions in curly braces
-command: DEFINE NAME arg_list '{' action_list '}'
+command: DEFINE NAME arg_list opt_linebreak '{' action_list '}'
                         {
                             int check = 0, count = 0;
 
-                            for (struct ast_list *mask = $5; mask; mask = mask->next)
+                            for (struct ast_list *mask = $6; mask; mask = mask->next)
                             {
                                 count++;
                                 if (!verify_ast(mask->a, $3))
@@ -70,14 +114,14 @@ command: DEFINE NAME arg_list '{' action_list '}'
 
                             if (!check)
                             {
-                                add_command($2, $5, $3);
+                                add_command($2, $6, $3);
                             }
                         }
-      | DEFINE NAME '{' action_list '}'
+      | DEFINE NAME opt_linebreak '{' action_list '}'
                         {
                             int check = 0, count = 0;
 
-                            for (struct ast_list *mask = $4; mask; mask = mask->next)
+                            for (struct ast_list *mask = $5; mask; mask = mask->next)
                             {
                                 count++;
                                 if (!verify_ast(mask->a, NULL))
@@ -90,7 +134,7 @@ command: DEFINE NAME arg_list '{' action_list '}'
 
                             if (!check)
                             {
-                                add_command($2, $4, NULL);
+                                add_command($2, $5, NULL);
                             }
                         }
 ;
@@ -140,12 +184,12 @@ action: symbol ASSIGN exp ';'           { $$ = newast('=', newsymref('r', NULL, 
 ;
 
     // list of actions, each action must be on a different line
-action_list: action                 {
-                                        $$ = new_ast_list($1, NULL);
-                                    }
-    | NEWLINE action                { $$ = new_ast_list($2, NULL); }
-    | action_list NEWLINE action    { $$ = add_ast($1, new_ast_list($3, NULL)); }
-    | action_list NEWLINE           { $$ = $1; }
+action_list: action                     {
+                                            $$ = new_ast_list($1, NULL);
+                                        }
+    | linebreak action                  { $$ = new_ast_list($2, NULL); }
+    | action_list linebreak action      { $$ = add_ast($1, new_ast_list($3, NULL)); }
+    | action_list linebreak             { $$ = $1; }
 ;
 
 

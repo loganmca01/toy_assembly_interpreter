@@ -228,13 +228,10 @@ void ast_list_free(struct ast_list *astl) {
 
 }
 
-void reg_tables_free() {
+void reg_table_free() {
 
-    for (int i = 0; i < sys_info.num_spec_reg; i++) {
-        free(sys_info.spec_regs[i]);
-    }
-    for (int i = 0; i < sys_info.num_gen_reg; i++) {
-        free(sys_info.gen_regs[i]);
+    for (int i = 0; i < sys_info.num_regs; i++) {
+        free(sys_info.regs[i]);
     }
 }
 
@@ -356,9 +353,8 @@ int verify_ast(struct ast *a, struct sym_list *sl) {
 
 int verify_ref(struct symref *symr, struct sym_list *sl) {
 
-    /* todo: replace NUM_SPEC_REG with appropriate part of system_info global struct */
-    for (int i = 0; i < sys_info.num_spec_reg; i++) {
-        if (!strcmp(sys_info.spec_regs[i], symr->name)) {
+    for (int i = 0; i < sys_info.num_regs; i++) {
+        if (!strcmp(sys_info.regs[i], symr->name)) {
             symr->nodetype = 'r';
             return 1;
         }
@@ -390,31 +386,9 @@ void generate_default_system() {
     sys_info.code_start = 0;
     sys_info.code_size = 2048;
 
-    sys_info.num_spec_reg = 4;
-    sys_info.num_gen_reg = 8;
-
-    sys_info.spec_regs = malloc(sizeof (char *) * sys_info.num_spec_reg);
-    sys_info.gen_regs = malloc(sizeof (char *) * sys_info.num_gen_reg);
-
-    sys_info.spec_regs[0] = strdup("AC");
-
-    sys_info.spec_regs[1] = strdup("PC");
-
-    sys_info.spec_regs[2] = strdup("SP");
-
-    sys_info.spec_regs[3] = strdup("BP");
-
-
-    for (int i = 0; i < sys_info.num_gen_reg; i++) {
-
-        /* TODO: if NUM_GEN_REG > 10, need to change how this is handled */
-        sys_info.gen_regs[i] = strdup("regx");
-        sys_info.gen_regs[i][3] = i + '0';
-
-    }
-
-    sys_info.lit_sym = '$';
-    sys_info.reg_sym = '%';
+    /* '0' represents no character, will be checked in user env program */
+    sys_info.reg_sym = '0';
+    sys_info.lit_sym = '0';
 
 }
 
@@ -461,36 +435,32 @@ int main(int argc, char **argv) {
 
     fprintf(out, "SYSTEM\n");
 
-    fprintf(out, "special register count: %d\n", sys_info.num_spec_reg);
+    fprintf(out, "register-count: %d\n", sys_info.num_regs);
+    fprintf(out, "register-names: ");
 
-    for (int i = 0; i < sys_info.num_spec_reg; i++) {
-        fprintf(out, "%s ", sys_info.spec_regs[i]);
+    for (int i = 0; i < sys_info.num_regs; i++) {
+        fprintf(out, "%s ", sys_info.regs[i]);
     }
 
+    fprintf(out, "\nprogram-counter-location: %d\n", sys_info.pc_loc);
 
-    fprintf(out, "\ngeneral register count: %d\n", sys_info.num_gen_reg);
+    fprintf(out, "stack-start-size: %d %d\n", sys_info.stack_start, sys_info.stack_size);
+    fprintf(out, "code-start-size: %d %d\n", sys_info.code_start, sys_info.code_size);
 
-    for (int i = 0; i < sys_info.num_gen_reg; i++) {
-        fprintf(out, "%s ", sys_info.gen_regs[i]);
-    }
-
-    fprintf(out, "\nstack start, size: %d, %d\n", sys_info.stack_start, sys_info.stack_size);
-    fprintf(out, "code start, size: %d, %d\n", sys_info.code_start, sys_info.code_size);
-
-    fprintf(out, "literal value symbol: %c\n", sys_info.lit_sym);
-    fprintf(out, "register value symbol: %c\n", sys_info.reg_sym);
+    fprintf(out, "literal-value-symbol: %c\n", sys_info.lit_sym);
+    fprintf(out, "register-value-symbol: %c\n\n", sys_info.reg_sym);
 
     for (int i = 0; i < num_commands; i++) {
 
-        fprintf(out, "COMMAND NO. %d\n", i+1);
+        fprintf(out, "\nCOMMAND-NO %d\n", i+1);
 
         c = command_table[i];
 
-        fprintf(out, "command name: %s\n", c.name);
-        fprintf(out, "command arguments: ");
+        fprintf(out, "command-name: %s\n", c.name);
+        fprintf(out, "command-arguments: ");
 
         for (struct sym_list *s = c.args; s != NULL; s = s->next) {
-            fprintf(out, "[%d %s] ", s->sym->type, s->sym->name);
+            fprintf(out, "[%d %s]", s->sym->type, s->sym->name);
         }
         fprintf(out, "\n");
 
