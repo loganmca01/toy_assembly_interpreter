@@ -1,4 +1,4 @@
-define add rega, regb {AC := rega + regb;}
+define add rega, regb {AC := (rega + regb);}
 define sub rega, regb {AC := rega - regb;}
 define neg rega {rega := 0 - rega;}
 define mova rega {rega := AC;}

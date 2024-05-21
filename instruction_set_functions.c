@@ -359,6 +359,7 @@ int verify_ref(struct symref *symr, struct sym_list *sl) {
     /* todo: replace NUM_SPEC_REG with appropriate part of system_info global struct */
     for (int i = 0; i < sys_info.num_spec_reg; i++) {
         if (!strcmp(sys_info.spec_regs[i], symr->name)) {
+            symr->nodetype = 'r';
             return 1;
         }
     }
@@ -366,6 +367,9 @@ int verify_ref(struct symref *symr, struct sym_list *sl) {
     for (; sl; sl = sl->next)
     {
         if (!strcmp(sl->sym->name, symr->name)) {
+            if (symr->nodetype == 'r') {
+                sl->sym->type = 1;
+            }
             return 1;
         }
     }

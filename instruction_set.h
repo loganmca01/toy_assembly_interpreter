@@ -12,8 +12,8 @@ struct command {
 
 /*
  * symbol types
- * 0 - register
- * 1 - variable
+ * 0 - variable or register (default)
+ * 1 - register only (set to this after assignment)
  *
  * todo: remove value from symbols, and fix all bugs that creates. no longer needed since user env elsewhere
  */
@@ -108,8 +108,8 @@ struct numval {
 /**
  * 2 different types of symbol reference
  *
- * r - register
- * v - variable
+ * r - register only
+ * v - variable/register (default until assignment)
  *
  */
 struct symref {

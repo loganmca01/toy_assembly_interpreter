@@ -33,26 +33,14 @@
 (?i:define)         { return DEFINE; }
 
 [a-zA-Z]+   {
-                for (int i = 0; i < sys_info.num_spec_reg; i++) {
-                    if (!strcmp(sys_info.spec_regs[i], yytext)) {
-                        yylval.strval = strdup(yytext);
-                        return REG;
-                    }
-                }
+
                 for (int i = 0; i < sys_info.num_gen_reg; i++) {
                     if (!strcmp(sys_info.gen_regs[i], yytext)) {
-                        yyerror("unavailable dummy register name %s", yytext);
+                        yyerror("can't use general purpose register name %s as argument", yytext);
                         return YYerror;
                     }
                 }
-                if (!strncmp(yytext, "reg", 3)) {
-                    yylval.strval = strdup(yytext);
-                    return REG;
-                }
-                if (!strncmp(yytext, "var", 3)) {
-                    yylval.strval = strdup(yytext);
-                    return VAR;
-                }
+
                 yylval.strval = strdup(yytext);
                 return NAME;
             }
