@@ -38,6 +38,9 @@ struct memory_region {
     int start;
     int end;
 
+    // int direction? or can this be implied if end < start?
+    // int permissions? treat like flags basically
+
 };
 
 struct system_information {
@@ -45,10 +48,9 @@ struct system_information {
     int pc_loc;
     char **regs;
 
-    int stack_start;
-    int stack_size;
-    int code_start;
-    int code_size;
+    int mem_size;
+    int num_regions;
+    struct memory_region *regions;
 
     char lit_sym;
     char reg_sym;
