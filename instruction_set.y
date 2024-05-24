@@ -43,7 +43,6 @@ char *tmp[64];
 %left '+' '-'
 %left '*' '/'
 
-%type <cmd> command
 %type <a> exp conditional action memory
 %type <s> symbol
 %type <sl> arg_list
@@ -54,16 +53,6 @@ char *tmp[64];
     /* todo: support for different memory regions using segmentation of one central stack, including code in machine language */
 system: reg_info linebreak command_list                                                                 {}
     |   reg_info linebreak symbols_info linebreak command_list                                          {}
-    |   stack_info linebreak code_info linebreak reg_info linebreak command_list                        {}
-    |   stack_info linebreak code_info linebreak reg_info linebreak symbols_info linebreak command_list {}
-;
-
-stack_info: STACK NUMBER ',' NUMBER   { sys_info.stack_start = $2; sys_info.stack_size = $4; }
-        |   STACK NUMBER NUMBER       { sys_info.stack_start = $2; sys_info.stack_size = $3; }
-;
-
-code_info: CODE NUMBER ',' NUMBER    { sys_info.code_start = $2; sys_info.code_size = $4; }
-        |  CODE NUMBER NUMBER        { sys_info.code_start = $2; sys_info.code_size = $3; }
 ;
 
 reg_info: REGS reg_list linebreak PC_LOC NUMBER {

@@ -49,8 +49,11 @@ struct system_information {
     char **regs;
 
     int mem_size;
+
+    /* todo: add support for different memory regions
     int num_regions;
     struct memory_region *regions;
+    */
 
     char lit_sym;
     char reg_sym;

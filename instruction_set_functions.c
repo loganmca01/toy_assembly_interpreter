@@ -378,13 +378,7 @@ int verify_ref(struct symref *symr, struct sym_list *sl) {
 // will eventually be replaced when custom registers are implemented
 void generate_default_system() {
 
-    /* 8 KB stack */
-    sys_info.stack_start = 0;
-    sys_info.stack_size = 8192;
-
-    /* 2 KB code (each instruction treated as 1 byte in simulation) */
-    sys_info.code_start = 0;
-    sys_info.code_size = 2048;
+    sys_info.mem_size = 8192;
 
     /* '0' represents no character, will be checked in user env program */
     sys_info.reg_sym = '0';
@@ -444,11 +438,12 @@ int main(int argc, char **argv) {
 
     fprintf(out, "\nprogram-counter-location: %d\n", sys_info.pc_loc);
 
-    fprintf(out, "stack-start-size: %d %d\n", sys_info.stack_start, sys_info.stack_size);
-    fprintf(out, "code-start-size: %d %d\n", sys_info.code_start, sys_info.code_size);
+    fprintf(out, "number-of-instructions: %d\n", num_commands);
 
+    /*
     fprintf(out, "literal-value-symbol: %c\n", sys_info.lit_sym);
-    fprintf(out, "register-value-symbol: %c\n\n", sys_info.reg_sym);
+    fprintf(out, "register-value-symbol: %c\n", sys_info.reg_sym);
+    */
 
     for (int i = 0; i < num_commands; i++) {
 

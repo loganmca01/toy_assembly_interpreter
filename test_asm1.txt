@@ -1,10 +1,5 @@
-stack 0 8192
-code 8192 1024
 registers R0 R1 R2 R3 R4 R5 R6 R7 AC SP BP PC
 pc_location 11
-literal_symbol $
-register_symbol %
-
 
 define add rega, regb {AC := (rega + regb);}
 
