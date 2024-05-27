@@ -6,6 +6,23 @@ class AstInterface():
     def print_tree(self):
         pass
 
+class Assign(AstInterface):
+    def __init__(self, nodetype, left, right):
+        self.nodetype = nodetype
+        self.left = left
+        self.right = right
+
+    def eval(self):
+        global memory
+        if left.nodetype == 'm':
+            #todo: figure out how to handle this with different number of bytes
+            pass
+        elif left.nodetype == 'r':
+            left.sym.val = right.eval()
+
+    def print_tree(self):
+        print("[" + nodetype + "]" + left.print_tree() + right.print_tree())
+
 class Arith(AstInterface):
     def __init__(self, nodetype, left, right):
         self.nodetype = nodetype
@@ -100,9 +117,10 @@ class Flow(AstInterface):
         print("[i]" + cond.print_tree() + then.print_tree())
 
 class Symbol():
-    def __init__(self, name, value):
+    def __init__(self, name, value, symtype):
         self.name = name
         self.value = value
+        self.symtype = symtype
 
 class Instruction():
     def __init__(self, name, args, actions):
@@ -110,4 +128,6 @@ class Instruction():
         self.args = args
         self.actions = actions
 
-    
+class Iterator():
+    def __init__(self, val):
+        self.val = val
