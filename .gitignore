@@ -6,6 +6,7 @@ lex.yy.c
 isa_interpreter
 
 #python
+__pycache__
 *.pyc
 
 #Clion
