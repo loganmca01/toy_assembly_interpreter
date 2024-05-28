@@ -5,6 +5,10 @@ instruction_set.lex.c
 lex.yy.c
 isa_interpreter
 
+#python
+__pycache__
+*.pyc
+
 #Clion
 .idea/
 

@@ -15,6 +15,9 @@
 ")" |
 "{" |
 "}" |
+"[" |
+"]" |
+"," |
 ";"         { return yytext[0]; }
 
 ">"         { yylval.c = '1'; return CMP; }
@@ -27,30 +30,25 @@
 
 ":"        { return COND; }
 
-(?i:define)         { return DEFINE; }
+(?i:define)                         { return DEFINE; }
+(?i:stack)                          { return STACK; }
+(?i:code)                           { return CODE; }
+(?i:registers)                      { return REGS; }
+(?i:pc_location)                    { return PC_LOC; }
+(?i:literal_symbol)                 { return LITERAL_SYMBOL; }
+(?i:register_symbol)                { return REGISTER_SYMBOL; }
 
-[a-zA-Z]+   {
-                /* TODO: figure out how to assign registers to point to symbols in args */
-                for (int i = 0; i < NUM_SPEC_REG; i++) {
-                    if (!strcmp(spec_reg[i].name, yytext)) {
-                        yylval.strval = strdup(yytext);
-                        return REG;
-                    }
-                }
-                for (int i = 0; i < NUM_GEN_REG; i++) {
-                    if (!strcmp(gen_reg[i].name, yytext)) {
-                        yyerror("unavailable dummy register name %s", yytext);
+
+[a-zA-Z][a-zA-Z0-9]+   {
+                /* todo: add checking for register names in parser rather than lexer
+                for (int i = 0; i < sys_info.num_regs; i++) {
+                    if (!strcmp(sys_info.regs[i], yytext)) {
+                        yyerror("%s is an existing register and can't be used as an argument", yytext);
                         return YYerror;
                     }
                 }
-                if (!strncmp(yytext, "reg", 3)) {
-                    yylval.strval = strdup(yytext);
-                    return REG;
-                }
-                if (!strncmp(yytext, "var", 3)) {
-                    yylval.strval = strdup(yytext);
-                    return VAR;
-                }
+                */
+
                 yylval.strval = strdup(yytext);
                 return NAME;
             }
@@ -61,5 +59,5 @@
 
 [ \t\r]     {}
 \n          { return NEWLINE; }
-.           { printf("unknown character %c\n", *yytext); }
+.           { yylval.c = yytext[0]; return OTHER_CHAR; }
 

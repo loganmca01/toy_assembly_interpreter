@@ -3,19 +3,21 @@
 %{
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "instruction_set.h"
+
+char *tmp[64];
 
 %}
 
 %define parse.error detailed
 
 %union {
-    /* TODO: remove unnecessary */
     struct ast *a;
     struct ast_list *al;
     struct symbol *s;
     struct sym_list *sl;
-    struct command *cmd;
+    //struct command *cmd;
     char *strval;
     char c;
     double d;
@@ -23,45 +25,77 @@
 
 %token <d> NUMBER
 %token <strval> NAME
-%token <strval> REG
 %token NEWLINE
 %token DEFINE
-%token <strval> VAR
+%token STACK
+%token CODE
+%token REGS
+%token PC_LOC
+%token LITERAL_SYMBOL
+%token REGISTER_SYMBOL
+%token <c> OTHER_CHAR
 
 %nonassoc COND
 %right ASSIGN
 %nonassoc <c> CMP
+%right NEWLINE
 
 %left '+' '-'
 %left '*' '/'
 
-%type <cmd> command
 %type <a> exp conditional action memory
+%type <s> symbol
 %type <sl> arg_list
 %type <al> action_list
 
-%start command_list
+%start system
 %%
-    // command list - starting symbol, entire input file should be part of it
-command_list: /* nothing */         { command_no = 1; }
-    | command_list command NEWLINE  { command_no++; }
-    | command_list command          { command_no++; }
-    | command_list error NEWLINE    {  }
+    /* todo: support for different memory regions using segmentation of one central stack, including code in machine language */
+system: reg_info linebreak command_list                                                                 {}
+    |   reg_info linebreak symbols_info linebreak command_list                                          {}
+;
 
+reg_info: REGS reg_list linebreak PC_LOC NUMBER {
+                                                    sys_info.regs = malloc(sizeof (char *) * sys_info.num_regs);
+                                                    memcpy(sys_info.regs, tmp, sizeof (char *) * sys_info.num_regs);
+                                                    sys_info.pc_loc = $5;
+                                                }
+;
+
+reg_list: NAME                  { tmp[0] = $1; sys_info.num_regs = 1; }
+        | reg_list ',' NAME     { tmp[sys_info.num_regs++] = $3; }
+        | reg_list NAME         { tmp[sys_info.num_regs++] = $2; }
+;
+
+symbols_info: LITERAL_SYMBOL OTHER_CHAR linebreak REGISTER_SYMBOL OTHER_CHAR { sys_info.lit_sym = $2; sys_info.reg_sym = $5; }
+;
+
+linebreak: NEWLINE             {}
+        |  NEWLINE linebreak   {}
+;
+
+opt_linebreak: /* */            {}
+            |  linebreak        {}
+;
+
+    // command list - starting symbol, entire input file should be part of it
+command_list: /* nothing */             { command_no = 1; }
+    | command_list command linebreak    { command_no++; }
+    | command_list command              { command_no++; }
+    | command_list error linebreak      {}
 ;
 
     // command - made up of definition, argument and list of actions in curly braces
-command: DEFINE NAME arg_list '{' action_list '}'
+command: DEFINE NAME arg_list opt_linebreak '{' action_list '}'
                         {
-                            // TODO: fix symref assignments in here
                             int check = 0, count = 0;
 
-                            for (struct ast_list *mask = $5; mask; mask = mask->next)
+                            for (struct ast_list *mask = $6; mask; mask = mask->next)
                             {
                                 count++;
                                 if (!verify_ast(mask->a, $3))
                                 {
-                                    yyerror("use of undefined dummy var/reg in command %d action %d", command_no, count);
+                                    yyerror("use of undefined register/variable in command %d action %d", command_no, count);
                                     check = 1;
                                     break;
                                 }
@@ -69,32 +103,52 @@ command: DEFINE NAME arg_list '{' action_list '}'
 
                             if (!check)
                             {
-                                add_command($2, $5, $3);
+                                add_command($2, $6, $3);
+                            }
+                        }
+      | DEFINE NAME opt_linebreak '{' action_list '}'
+                        {
+                            int check = 0, count = 0;
+
+                            for (struct ast_list *mask = $5; mask; mask = mask->next)
+                            {
+                                count++;
+                                if (!verify_ast(mask->a, NULL))
+                                {
+                                    yyerror("use of undefined register/variable in command %d action %d", command_no, count);
+                                    check = 1;
+                                    break;
+                                }
+                            }
+
+                            if (!check)
+                            {
+                                add_command($2, $5, NULL);
                             }
                         }
 ;
 
 
     // memory reference
-memory: '(' exp ')'        { $$ = newmemref('m', $2); }
+memory: '[' exp ']'        { $$ = newmemref('m', $2); }
 ;
 
-    /* TODO: add memory references to arguments? */
+symbol: NAME               { $$ = newsym($1, 0); }
+;
+
    // list of register and variable arguments
-arg_list:    /* nothing */      { $$ = NULL; }
-    | arg_list REG              { if ($1) { $1 = add_sym($1, new_sym_list(newsym($2, 0), NULL)); $$ = $1;} else { $$ = new_sym_list(newsym($2, 0), NULL); } }
-    | arg_list VAR              { if ($1) { $1 = add_sym($1, new_sym_list(newsym($2, 1), NULL)); $$ = $1;} else $$ = new_sym_list(newsym($2, 1), NULL); }
+arg_list: symbol                { $$ = new_sym_list($1, NULL); }
+    | arg_list ',' symbol       { $$ = add_sym($1, new_sym_list($3, NULL)); }
 ;
 
     // expression - any number, memory reference, register, variable, operation, or comparison
-    // TODO IDEA: assign symrefs to point to null, then reassign to args later in above rule
 exp: exp CMP exp                { $$ = newcmp($2, $1, $3); }
     | exp '+' exp               { $$ = newast('+', $1, $3); }
     | exp '-' exp               { $$ = newast('-', $1, $3); }
     | exp '*' exp               { $$ = newast('*', $1, $3); }
     | exp '/' exp               { $$ = newast('*', $1, $3); }
-    | VAR                       { $$ = newsymref('v', NULL, $1); }
-    | REG                       { $$ = newsymref('r', NULL, $1); }
+    | '(' exp ')'               { $$ = $2; }
+    | symbol                    { $$ = newsymref('v', NULL, $1->name); free($1); }
     | memory                    { $$ = $1; }
     | NUMBER                    { $$ = newnum($1); }
 ;
@@ -102,27 +156,29 @@ exp: exp CMP exp                { $$ = newcmp($2, $1, $3); }
     // conditional expression, helps with action
 conditional: COND exp           { $$ = newflow($2, NULL); }
 ;
+
     // TODO: figure out how to assign registers to point to symbols in args
     // some variety of assignment operation, ends with semicolon
-action: REG ASSIGN exp ';'            { $$ = newast('=', newsymref('r', NULL, $1), $3); }
-    | memory ASSIGN exp ';'                { $$ = newast('=', $1, $3); }
-    | REG ASSIGN exp conditional ';'  { struct ast *front = newast('=', newsymref('r', NULL, $1), $3);
-                                             ((struct flow *) $4)->then = front;
-                                             $$ = $4;
-                                           }
-    | memory ASSIGN exp conditional ';'    { struct ast *front = newast('=', $1, $3);
-                                             ((struct flow *) $4)->then = front;
-                                             $$ = $4;
-                                           }
+action: symbol ASSIGN exp ';'           { $$ = newast('=', newsymref('r', NULL, $1->name), $3); free($1); }
+    | memory ASSIGN exp ';'             { $$ = newast('=', $1, $3); }
+    | symbol ASSIGN exp conditional ';' { struct ast *front = newast('=', newsymref('r', NULL, $1->name), $3);
+                                          ((struct flow *) $4)->then = front;
+                                          $$ = $4;
+                                          free($1);
+                                        }
+    | memory ASSIGN exp conditional ';' { struct ast *front = newast('=', $1, $3);
+                                          ((struct flow *) $4)->then = front;
+                                          $$ = $4;
+                                        }
 ;
 
     // list of actions, each action must be on a different line
-action_list: action                 {
-                                        $$ = new_ast_list($1, NULL);
-                                    }
-    | NEWLINE action                { $$ = new_ast_list($2, NULL); }
-    | action_list NEWLINE action    { $$ = add_ast($1, new_ast_list($3, NULL)); }
-    | action_list NEWLINE           { $$ = $1; }
+action_list: action                     {
+                                            $$ = new_ast_list($1, NULL);
+                                        }
+    | linebreak action                  { $$ = new_ast_list($2, NULL); }
+    | action_list linebreak action      { $$ = add_ast($1, new_ast_list($3, NULL)); }
+    | action_list linebreak             { $$ = $1; }
 ;
 
 
