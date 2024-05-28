@@ -15,7 +15,6 @@ struct command {
  * 0 - variable or register (default)
  * 1 - register only (set to this after assignment)
  *
- * todo: remove value from symbols, and fix all bugs that creates. no longer needed since user env elsewhere
  */
 struct symbol {
     char *name;

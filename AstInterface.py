@@ -14,14 +14,16 @@ class Assign(AstInterface):
 
     def eval(self):
         global memory
-        if left.nodetype == 'm':
+        if self.left.nodetype == 'm':
             #todo: figure out how to handle this with different number of bytes
             pass
-        elif left.nodetype == 'r':
-            left.sym.val = right.eval()
+        elif self.left.nodetype == 'r':
+            self.left.sym.val = right.eval()
 
     def print_tree(self):
-        print("[" + nodetype + "]" + left.print_tree() + right.print_tree())
+        print("[" + self.nodetype + "]")
+        self.left.print_tree()
+        self.right.print_tree()
 
 class Arith(AstInterface):
     def __init__(self, nodetype, left, right):
@@ -30,17 +32,19 @@ class Arith(AstInterface):
         self.right = right
 
     def eval(self):
-        if nodetype == '+':
-            left.eval() + right.eval()
-        elif nodetype == '-':
-            left.eval() - right.eval()
-        elif nodetype == '*':
-            left.eval() * right.eval()
-        elif nodetype == '/':
-            left.eval() / right.eval()
+        if self.nodetype == '+':
+            self.left.eval() + self.right.eval()
+        elif self.nodetype == '-':
+            self.left.eval() - self.right.eval()
+        elif self.nodetype == '*':
+            self.left.eval() * self.right.eval()
+        elif self.nodetype == '/':
+            self.left.eval() / self.right.eval()
 
     def print_tree(self):
-        print("[" + nodetype + "]" + left.print_tree() + right.print_tree())
+        print("[" + self.nodetype + "]")
+        self.left.print_tree()
+        self.right.print_tree()
         
 
 class Cmp(AstInterface):
@@ -50,73 +54,81 @@ class Cmp(AstInterface):
         self.right = right
 
     def eval(self):
-        if nodetype == '1':
-            return left.eval() > right.eval()
-        elif nodetype == '2':
-            return left.eval() < right.eval()
-        elif nodetype == '3':
-            return left.eval() == right.eval()
-        elif nodetype == '4':
-            return left.eval() >= right.eval()
-        elif nodetype == '5':
-            return left.eval() <= right.eval()
+        if self.nodetype == '1':
+            return self.left.eval() > self.right.eval()
+        elif self.nodetype == '2':
+            return self.left.eval() < self.right.eval()
+        elif self.nodetype == '3':
+            return self.left.eval() == self.right.eval()
+        elif self.nodetype == '4':
+            return self.left.eval() >= self.right.eval()
+        elif self.nodetype == '5':
+            return self.left.eval() <= self.right.eval()
 
     def print_tree(self):
-        print("[" + nodetype + "]" + left.print_tree() + right.print_tree())
+        print("[" + self.nodetype + "]")
+        self.left.print_tree()
+        self.right.print_tree()
 
 class SymRef(AstInterface):
-    def __init__(self, sym):
+    def __init__(self, nodetype, sym):
         self.sym = sym
+        self.nodetype = nodetype
 
     def eval(self):
-        return sym.value
+        return self.sym.value
 
     def print_tree(self):
-        print("[symref " + sym.name + "]")
+        print("[symref " + self.nodetype + " " + self.sym.name + "]")
 
 class MemRef(AstInterface):
-    def __init__(self, loc):
+    def __init__(self, nodetype, loc):
         self.loc = loc
+        self.nodetype = nodetype
 
     def eval(self):
-        global memory
-        global memory_size
 
-        addr = loc.eval()
+        addr = self.loc.eval()
 
         # todo: fix second condition to make sure full value is within memory
         # add else which throws exception (?) or just somehow signals an error
-        if (addr >= 0 and addr < memory_size):
-            return memory[addr]
+        if (addr >= 0 and addr < SystemInfo.memory_size):
+            return SystemInfo.memory[addr]
 
     def print_tree(self):
         print("[m]")
+        self.loc.print_tree()
         
 
 class Num(AstInterface):
-    def __init__(self, number):
+    def __init__(self, nodetype, number):
         self.number = number
+        self.nodetype = nodetype
 
     def eval(self):
-        return number
+        return self.number
 
     def print_tree(self):
-        print("[n " + number + "]")
+        print("[n " + str(self.number) + "]")
 
 
 class Flow(AstInterface):
-    def __init__(self, cond, then):
+    def __init__(self, nodetype, cond, then):
         self.cond = cond
         self.then = then
+        self.nodetype = nodetype
 
     def eval(self):
-        if (cond.eval()):
-            then.eval()
+        if (self.cond.eval()):
+            self.then.eval()
 
     def print_tree(self):
-        print("[i]" + cond.print_tree() + then.print_tree())
+        print("[i]")
+        self.cond.print_tree()
+        self.then.print_tree()
 
 class Symbol():
+    # symtype is 0 for variable or register, 1 for register only
     def __init__(self, name, value, symtype):
         self.name = name
         self.value = value

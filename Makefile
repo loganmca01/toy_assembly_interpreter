@@ -9,3 +9,5 @@ clean:
 	rm -f instruction_set.tab.c && \
 	rm -f instruction_set.tab.h
 
+wsl-tkinter:
+	sudo apt-get install python3-tk
