@@ -19,6 +19,9 @@ def parse_system_info(file):
     num = read_int(file)
     SystemInfo.pc_loc = num
 
+    parse_body(file, "memory-size: ", 13)
+    SystemInfo.memory_size = read_int(file)
+
     parse_body(file, "number-of-instructions: ", 24)
     num = read_int(file)
     SystemInfo.num_instructions = num

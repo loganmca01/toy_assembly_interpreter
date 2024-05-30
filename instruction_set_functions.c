@@ -438,7 +438,10 @@ int main(int argc, char **argv) {
 
     fprintf(out, "\nprogram-counter-location: %d\n", sys_info.pc_loc);
 
+    fprintf(out, "memory-size: %d\n", sys_info.mem_size);
+
     fprintf(out, "number-of-instructions: %d\n", num_commands);
+
 
     /*
     fprintf(out, "literal-value-symbol: %c\n", sys_info.lit_sym);
