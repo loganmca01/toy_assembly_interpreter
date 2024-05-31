@@ -12,6 +12,7 @@ class Assign(AstInterface):
         self.left = left
         self.right = right
 
+    #idea: return code based off type of assignment, use for updating
     def eval(self):
         global memory
         if self.left.nodetype == 'm':
