@@ -20,20 +20,14 @@ char *tmp[64];
     //struct command *cmd;
     char *strval;
     char c;
-    double d;
+    int d;
 }
 
 %token <d> NUMBER
 %token <strval> NAME
 %token NEWLINE
 %token DEFINE
-%token STACK
-%token CODE
-%token REGS
-%token PC_LOC
-%token LITERAL_SYMBOL
-%token REGISTER_SYMBOL
-%token <c> OTHER_CHAR
+%token <d> REG
 
 %nonassoc COND
 %right ASSIGN
@@ -50,32 +44,20 @@ char *tmp[64];
 
 %start system
 %%
-    /* todo: support for different memory regions using segmentation of one central stack, including code in machine language */
-system: reg_info linebreak command_list                                                                 {}
-    |   reg_info linebreak symbols_info linebreak command_list                                          {}
+
+system: named_reg_list linebreak command_list       {}
+
+named_reg:  NAME '=' REG                            { sys_info.reg_names[$3] = strdup($1); }
+
+named_reg_list: /* */                               {}
+            |   named_reg_list named_reg            {}
+
+linebreak: NEWLINE                                  {}
+        |  NEWLINE linebreak                        {}
 ;
 
-reg_info: REGS reg_list linebreak PC_LOC NUMBER {
-                                                    sys_info.regs = malloc(sizeof (char *) * sys_info.num_regs);
-                                                    memcpy(sys_info.regs, tmp, sizeof (char *) * sys_info.num_regs);
-                                                    sys_info.pc_loc = $5;
-                                                }
-;
-
-reg_list: NAME                  { tmp[0] = $1; sys_info.num_regs = 1; }
-        | reg_list ',' NAME     { tmp[sys_info.num_regs++] = $3; }
-        | reg_list NAME         { tmp[sys_info.num_regs++] = $2; }
-;
-
-symbols_info: LITERAL_SYMBOL OTHER_CHAR linebreak REGISTER_SYMBOL OTHER_CHAR { sys_info.lit_sym = $2; sys_info.reg_sym = $5; }
-;
-
-linebreak: NEWLINE             {}
-        |  NEWLINE linebreak   {}
-;
-
-opt_linebreak: /* */            {}
-            |  linebreak        {}
+opt_linebreak: /* */                                {}
+            |  linebreak                            {}
 ;
 
     // command list - starting symbol, entire input file should be part of it

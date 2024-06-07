@@ -31,13 +31,20 @@
 ":"        { return COND; }
 
 (?i:define)                         { return DEFINE; }
-(?i:stack)                          { return STACK; }
-(?i:code)                           { return CODE; }
-(?i:registers)                      { return REGS; }
-(?i:pc_location)                    { return PC_LOC; }
-(?i:literal_symbol)                 { return LITERAL_SYMBOL; }
-(?i:register_symbol)                { return REGISTER_SYMBOL; }
 
+R\[[0-9]+\]                         { 
+                                        /* TODO: check that register number is in range, add a type to REG and set it */
+                                        int sum = 0;
+                                        for (int i = 2; yytext[i] != ']'; i++) {                                        
+                                            sum += yytext[i] - '0';
+                                        }
+                                        if (sum >= sys_info.num_regs)
+                                            yyerror("named register out of bounds");
+                                        else {
+                                            yylval.d = sum;
+                                            return REG;
+                                        }
+                                    }
 
 [a-zA-Z][a-zA-Z0-9]+   {
                 /* todo: add checking for register names in parser rather than lexer
@@ -59,5 +66,5 @@
 
 [ \t\r]     {}
 \n          { return NEWLINE; }
-.           { yylval.c = yytext[0]; return OTHER_CHAR; }
+.           { yyerror("unknown character"); }
 

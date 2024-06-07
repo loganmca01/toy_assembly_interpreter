@@ -44,8 +44,7 @@ struct memory_region {
 
 struct system_information {
     int num_regs;
-    int pc_loc;
-    char **regs;
+    char **reg_names;
 
     int mem_size;
 
@@ -136,7 +135,7 @@ struct symbol *newsym(char *name, int type);
 
 // construct ast nodes, always cast back to ast pointer
 struct ast *newast(char nodetype, struct ast *l, struct ast *r);
-struct ast *newnum(double d);
+struct ast *newnum(int d);
 struct ast *newcmp(char cmptype, struct ast *l, struct ast *r);
 struct ast *newsymref(char reftype, struct symbol *s, char *name);
 struct ast *newmemref(char nodetype, struct ast *loc);

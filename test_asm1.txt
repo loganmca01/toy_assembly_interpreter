@@ -1,9 +1,11 @@
-registers R0 R1 R2 R3 R4 R5 R6 R7 AC SP BP PC
-pc_location 11
+AC = R[1]
+SP = R[2]
 
-define add rega, regb {AC := (rega + regb);}
+define add rega, regb 
+{AC := (rega + regb);}
 
-define sub rega, regb {AC := rega - regb;}
+define sub rega, regb 
+{AC := rega - regb;}
 
 define neg rega {rega := 0 - rega;}
 

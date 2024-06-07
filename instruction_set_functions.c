@@ -130,7 +130,7 @@ struct ast *newast(char nodetype, struct ast *l, struct ast *r)
     return a;
 }
 
-struct ast *newnum(double d)
+struct ast *newnum(int d)
 {
     struct numval *a = malloc(sizeof(struct numval));
 
@@ -402,14 +402,31 @@ extern int yyparse(void);
 
 int main(int argc, char **argv) {
 
-    if (argc != 3 || strcmp(&argv[2][strlen(argv[2]) - 4], ".isa")) {
+    if (argc != 4 || strcmp(&argv[3][strlen(argv[2]) - 4], ".isa")) {
         fprintf(stderr, "error: invalid number of arguments. correct usage: ./isa_interpreter [instruction_set] [output file name (extension .isa)]\n");
     }
+
+    FILE *sys_file = fopen(argv[1], "r");
+
+    if (sys_file == NULL) {
+        fprintf(stderr, "error opening system information file\n");
+        exit(1);
+    }
+
+
+
+
+
 
     num_commands = 0;
 
     /* Process command line args*/
-    yyin = fopen(argv[1], "r");
+    yyin = fopen(argv[2], "r");
+
+    if (yyin == NULL) {
+        fprintf(stderr, "error opening instruction set file\n");
+        exit(1);
+    }
 
     /* generate default system information, can be altered in passed rtn file */
     generate_default_system();
