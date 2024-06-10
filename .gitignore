@@ -5,11 +5,14 @@ instruction_set.lex.c
 lex.yy.c
 isa_interpreter
 
-#python
+# isa files
+*.isa
+
+# python
 __pycache__
 *.pyc
 
-#Clion
+# Clion
 .idea/
 
 # Prerequisites

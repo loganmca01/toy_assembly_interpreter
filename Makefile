@@ -1,7 +1,7 @@
-isa_interpreter:	instruction_set.l instruction_set.y instruction_set.h instruction_set_functions.c system_info_parser.c
-					bison -d instruction_set.y -Wcounterexamples && \
-					flex -oinstruction_set.lex.c instruction_set.l && \
-					cc -g -o $@ instruction_set.tab.c instruction_set.lex.c instruction_set_functions.c system_info_parser.c -lm
+isa_interpreter:	isa_gen/instruction_set.l isa_gen/instruction_set.y isa_gen/instruction_set.h isa_gen/instruction_set_functions.c isa_gen/system_info_parser.c ast_functions.c
+					bison -d isa_gen/instruction_set.y -Wcounterexamples && \
+					flex -oinstruction_set.lex.c isa_gen/instruction_set.l && \
+					cc -g -o $@ instruction_set.tab.c instruction_set.lex.c isa_gen/instruction_set_functions.c isa_gen/system_info_parser.c ast_functions.c -lm
 
 clean:
 	rm -f isa_interpreter && \
