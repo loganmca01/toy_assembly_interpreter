@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "isa_gen/instruction_set.h"
+#include "instruction_set.h"
 
 char *tmp[64];
 

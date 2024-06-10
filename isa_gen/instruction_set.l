@@ -1,7 +1,7 @@
 %option noyywrap nodefault yylineno
 
 %{
-#include "isa_gen/instruction_set.h"
+#include "instruction_set.h"
 #include "instruction_set.tab.h"
 %}
 
