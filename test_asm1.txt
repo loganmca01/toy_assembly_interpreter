@@ -1,5 +1,6 @@
 AC = R[1]
 SP = R[2]
+BP = R[3]
 
 define add rega, regb 
 {AC := (rega + regb);}

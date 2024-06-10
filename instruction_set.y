@@ -45,12 +45,12 @@ char *tmp[64];
 %start system
 %%
 
-system: named_reg_list linebreak command_list       {}
+system: named_reg_list opt_linebreak command_list   {  }
 
 named_reg:  NAME '=' REG                            { sys_info.reg_names[$3] = strdup($1); }
 
-named_reg_list: /* */                               {}
-            |   named_reg_list named_reg            {}
+named_reg_list: /* */                               {  }
+            |   named_reg_list named_reg linebreak  {  }
 
 linebreak: NEWLINE                                  {}
         |  NEWLINE linebreak                        {}

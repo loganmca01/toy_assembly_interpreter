@@ -13,8 +13,7 @@ register-count: 12
 10
 11
 memory-size: 8192
-memory-regions: [code 0 1024 0] [stack 4096 2048 1]
-number-of-instructions: 16
+memory-regions: [code 0 1024 0]number-of-instructions: 16
 
 COMMAND-NO 1
 command-name: add

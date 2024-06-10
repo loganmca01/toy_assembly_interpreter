@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
+#include "ast_header.h"
 
 struct command {
     char *name;
@@ -8,7 +9,6 @@ struct command {
 };
 
 #define MAX_COMMAND 1024
-
 
 /*
  * symbol types
@@ -34,27 +34,31 @@ struct ast_list {
 
 struct memory_region {
 
-    int start;
-    int end;
+    char *name;
 
-    // int direction? or can this be implied if end < start?
-    // int permissions? treat like flags basically
+    int base;
+    int bound;
+    
+    /* 0 for up, 1 for down */
+    int direction;
 
 };
 
 struct system_information {
+    int num_instructions;
+    
     int num_regs;
     char **reg_names;
 
     int mem_size;
+    int num_regions;
+    struct memory_region *mem_regions;
 
     /* todo: add support for different memory regions
     int num_regions;
     struct memory_region *regions;
     */
 
-    char lit_sym;
-    char reg_sym;
 };
 
 extern struct system_information sys_info;
@@ -145,6 +149,9 @@ void dump_ast(FILE *f, struct ast *a);
 int verify_ast(struct ast *a, struct sym_list *sl);
 int verify_ref(struct symref *symr, struct sym_list *sl);
 
+
+// parser for system info file
+int parse_system_info(FILE *f);
 
 // from flex, bison
 extern FILE *yyin;

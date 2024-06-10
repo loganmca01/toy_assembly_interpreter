@@ -231,7 +231,7 @@ void ast_list_free(struct ast_list *astl) {
 void reg_table_free() {
 
     for (int i = 0; i < sys_info.num_regs; i++) {
-        free(sys_info.regs[i]);
+        if (sys_info.reg_names[i]) free(sys_info.reg_names[i]);
     }
 }
 
@@ -353,8 +353,13 @@ int verify_ast(struct ast *a, struct sym_list *sl) {
 
 int verify_ref(struct symref *symr, struct sym_list *sl) {
 
+    if (!strcmp("PC", symr->name)) {
+        symr->nodetype = 'r';
+        return 1;
+    }
+
     for (int i = 0; i < sys_info.num_regs; i++) {
-        if (!strcmp(sys_info.regs[i], symr->name)) {
+        if (sys_info.reg_names[i] && !strcmp(sys_info.reg_names[i], symr->name)) {
             symr->nodetype = 'r';
             return 1;
         }
@@ -378,11 +383,8 @@ int verify_ref(struct symref *symr, struct sym_list *sl) {
 // will eventually be replaced when custom registers are implemented
 void generate_default_system() {
 
-    sys_info.mem_size = 8192;
-
-    /* '0' represents no character, will be checked in user env program */
-    sys_info.reg_sym = '0';
-    sys_info.lit_sym = '0';
+    /* buffer for memory regions to be loaded initially */
+    sys_info.mem_regions = malloc(sizeof (struct memory_region) * 8);
 
 }
 
@@ -399,11 +401,15 @@ void yyerror(char *s, ...) {
 }
 
 extern int yyparse(void);
+extern int parse_system_info(FILE *f);
+
+char *test;
 
 int main(int argc, char **argv) {
+    test = argv[3];
 
-    if (argc != 4 || strcmp(&argv[3][strlen(argv[2]) - 4], ".isa")) {
-        fprintf(stderr, "error: invalid number of arguments. correct usage: ./isa_interpreter [instruction_set] [output file name (extension .isa)]\n");
+    if (argc != 4 || strcmp(&argv[3][strlen(argv[3]) - 4], ".isa")) {
+        fprintf(stderr, "error: invalid number of arguments. correct usage: ./isa_interpreter [system info file] [instruction_set] [output file name (extension .isa)]\n");
     }
 
     FILE *sys_file = fopen(argv[1], "r");
@@ -413,10 +419,11 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
+    generate_default_system();
 
 
-
-
+    /* NOTE: some impossible way after this function call argv[3] is different */
+    parse_system_info(sys_file);
 
     num_commands = 0;
 
@@ -429,13 +436,12 @@ int main(int argc, char **argv) {
     }
 
     /* generate default system information, can be altered in passed rtn file */
-    generate_default_system();
 
     yyparse();
 
     fclose(yyin);
 
-    FILE *out = fopen(argv[2], "w");
+    FILE *out = fopen(argv[3], "w");
 
     if (errno > 0) {
         fprintf(stderr,"error opening output file\n");
@@ -447,18 +453,25 @@ int main(int argc, char **argv) {
     fprintf(out, "SYSTEM\n");
 
     fprintf(out, "register-count: %d\n", sys_info.num_regs);
-    fprintf(out, "register-names: ");
 
     for (int i = 0; i < sys_info.num_regs; i++) {
-        fprintf(out, "%s ", sys_info.regs[i]);
+        if (sys_info.reg_names[i])
+            fprintf(out, "%d, %s\n", i, sys_info.reg_names[i]);
+        else
+            fprintf(out, "%d\n", i);
     }
-
-    fprintf(out, "\nprogram-counter-location: %d\n", sys_info.pc_loc);
 
     fprintf(out, "memory-size: %d\n", sys_info.mem_size);
 
-    fprintf(out, "number-of-instructions: %d\n", num_commands);
+    fprintf(out, "memory-regions:");
 
+    for (int i = 0; i < sys_info.num_regions; i++) {
+        fprintf(out, " [%s %d %d %d]", sys_info.mem_regions[i].name, sys_info.mem_regions[i].base, sys_info.mem_regions[i].bound, sys_info.mem_regions[i].direction);
+    }
+
+    fprintf(out, "\n");
+
+    fprintf(out, "number-of-instructions: %d\n", num_commands);
 
     /*
     fprintf(out, "literal-value-symbol: %c\n", sys_info.lit_sym);

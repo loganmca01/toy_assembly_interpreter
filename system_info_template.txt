@@ -1,0 +1,4 @@
+SYSTEM
+register-count: 12
+memory-size: 8192
+memory-regions: [code 0 1024 0] [stack 4096 2048 1]
