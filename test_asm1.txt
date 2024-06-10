@@ -8,13 +8,13 @@ define add rega, regb
 define sub rega, regb 
 {AC := rega - regb;}
 
-define neg rega {rega := 0 - rega;}
+define 0x11 neg rega {rega := 0 - rega;}
 
 define mova rega {rega := AC;}
 
 define movr rega, regb {regb := rega;}
 
-define lodi rega, vara {rega := vara;}
+define 0xF7 lodi rega, vara {rega := vara;}
 
 define loda rega, vara {rega := [vara];}
 

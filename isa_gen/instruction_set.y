@@ -85,7 +85,7 @@ command: DEFINE NAME arg_list opt_linebreak '{' action_list '}'
 
                             if (!check)
                             {
-                                add_command($2, $6, $3);
+                                add_command($2, $6, $3, 0);
                             }
                         }
       | DEFINE NAME opt_linebreak '{' action_list '}'
@@ -105,7 +105,47 @@ command: DEFINE NAME arg_list opt_linebreak '{' action_list '}'
 
                             if (!check)
                             {
-                                add_command($2, $5, NULL);
+                                add_command($2, $5, NULL, 0);
+                            }
+                        }
+      | DEFINE NUMBER NAME arg_list opt_linebreak '{' action_list '}'
+                        {
+                            int check = 0, count = 0;
+
+                            for (struct ast_list *mask = $7; mask; mask = mask->next)
+                            {
+                                count++;
+                                if (!verify_ast(mask->a, $4))
+                                {
+                                    yyerror("use of undefined register/variable in command %d action %d", command_no, count);
+                                    check = 1;
+                                    break;
+                                }
+                            }
+
+                            if (!check)
+                            {
+                                add_command($3, $7, $4, $2);
+                            }
+                        }
+      | DEFINE NUMBER NAME opt_linebreak '{' action_list '}'
+                        {
+                            int check = 0, count = 0;
+
+                            for (struct ast_list *mask = $6; mask; mask = mask->next)
+                            {
+                                count++;
+                                if (!verify_ast(mask->a, NULL))
+                                {
+                                    yyerror("use of undefined register/variable in command %d action %d", command_no, count);
+                                    check = 1;
+                                    break;
+                                }
+                            }
+
+                            if (!check)
+                            {
+                                add_command($3, $6, NULL, $2);
                             }
                         }
 ;

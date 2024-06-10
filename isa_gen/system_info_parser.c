@@ -49,8 +49,6 @@ char *read_mem_region(char *s, int i) {
 
 }
 
-extern char *test;
-
 int parse_system_info(FILE *f) {
 
 

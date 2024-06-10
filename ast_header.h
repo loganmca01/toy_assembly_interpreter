@@ -1,12 +1,26 @@
-
+#include <stdint.h>
 
 
 struct command {
     char *name;
     struct ast_list *actions;
     struct sym_list *args;
+    uint8_t opcode;
 };
 
+
+/**
+*   symbol types
+*
+*   0 - r
+*   1 - m
+*   2 - i
+*   3 - r/m
+*   4 - r/i
+*   5 - m/i
+*   6 - r/m/i
+*
+*/
 struct symbol {
     char *name;
     int type;

@@ -13,7 +13,27 @@ int num_commands;
 
 struct system_information sys_info;
 
-void add_command(char *name, struct ast_list *actions, struct sym_list *args) {
+uint8_t low_opcode = 1;
+
+/* 
+*   helper function, returns 0 if opcode is available, 1 if not
+*/
+int check_opcode(int opcode) {
+
+    int check = 0;
+
+    for (int i = 0; i < num_commands; i++) {
+        if (command_table[i].opcode == opcode) {
+            check = 1;
+            break;
+        }
+    }
+
+    return check;
+
+}
+
+void add_command(char *name, struct ast_list *actions, struct sym_list *args, uint8_t opcode) {
 
     if (num_commands == MAX_COMMAND) {
         yyerror("command table overflow. max 1024 allowed\n");
@@ -22,6 +42,28 @@ void add_command(char *name, struct ast_list *actions, struct sym_list *args) {
 
     int i;
     struct command c;
+    uint8_t checked_opcode;
+
+    if (opcode == 0) {
+        checked_opcode = low_opcode;
+        low_opcode++;
+        while (check_opcode(low_opcode)) 
+            low_opcode++;
+    }
+    else {
+        if (check_opcode(opcode)) {
+            yyerror("opcode already taken (may be taken by auto generated opcode, if so move command higher up)");
+            return;
+        }
+        checked_opcode = opcode;
+        
+        if (opcode == low_opcode) {
+            low_opcode++;
+            while (check_opcode(low_opcode)) 
+                low_opcode++;
+        }
+
+    }
 
     for (i = 0; i < num_commands; i++) {
 
@@ -39,6 +81,7 @@ void add_command(char *name, struct ast_list *actions, struct sym_list *args) {
             command_table[i].name = name;
             command_table[i].args = args;
             command_table[i].actions = actions;
+            command_table[i].opcode = checked_opcode;
             num_commands++;
             return;
         }
@@ -47,6 +90,7 @@ void add_command(char *name, struct ast_list *actions, struct sym_list *args) {
     command_table[i].name = name;
     command_table[i].args = args;
     command_table[i].actions = actions;
+    command_table[i].opcode = checked_opcode;
     num_commands++;
 
 }
@@ -264,6 +308,7 @@ int main(int argc, char **argv) {
         c = command_table[i];
 
         fprintf(out, "command-name: %s\n", c.name);
+        fprintf(out, "command-opcode: 0x%02x\n", c.opcode);
         fprintf(out, "command-arguments: ");
 
         for (struct sym_list *s = c.args; s != NULL; s = s->next) {
