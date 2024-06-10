@@ -307,9 +307,9 @@ int main(int argc, char **argv) {
 
         c = command_table[i];
 
-        fprintf(out, "command-name: %s\n", c.name);
-        fprintf(out, "command-opcode: 0x%02x\n", c.opcode);
-        fprintf(out, "command-arguments: ");
+        fprintf(out, "name: %s\n", c.name);
+        fprintf(out, "opcode: 0x%02x\n", c.opcode);
+        fprintf(out, "arguments: ");
 
         for (struct sym_list *s = c.args; s != NULL; s = s->next) {
             fprintf(out, "[%d %s]", s->sym->type, s->sym->name);
