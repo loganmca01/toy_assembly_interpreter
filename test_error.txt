@@ -1,7 +1,0 @@
-define movm rega regb {(regb) := rega;}
-define jmpz vara {PC := vara : AC == 0;}
-define undeferr {
-PC := AC;
-SP := vara;
-BP := BP + 2;
-}

@@ -1,0 +1,51 @@
+AC = R[1]
+SP = R[2]
+BP = R[3]
+
+define add rega:r, regb:r 
+{AC := (rega + regb);}
+
+define sub rega:r, regb:r 
+{AC := rega - regb;}
+
+define 0x11 neg rega:r {rega := 0 - rega;}
+
+define mova rega:r {rega := AC;}
+
+define movr rega:r, regb:r {regb := rega;}
+
+define 0xF7 lodi rega:r, vara:i {rega := vara;}
+
+define loda rega:r, vara:m/i {rega := [vara];}
+
+define lorr rega:r, regb:r, vara:i {rega := [regb + vara];}
+
+define stoa rega:r, vara:r/m/i {[vara] := rega;}
+
+define stor rega:r,regb:r,vara:r/m {[regb + vara] := rega;}
+
+define stoi vara:r/m/i, varb:i {[varb] := vara;}
+
+define jmp vara:r/m {PC := vara;}
+
+define jmpz vara:r/m/i {PC := vara : AC == 0;}
+
+define jmpn vara:r/i {PC := vara : AC < 0;}
+
+define call vara:i
+{
+[SP] := PC;
+PC := vara;
+SP := SP + 2;
+[SP] := BP;
+BP := SP;
+SP := SP + 2;
+}
+
+define ret
+{
+SP := BP;
+BP := [SP];
+SP := SP + 2;
+PC := [SP];
+}

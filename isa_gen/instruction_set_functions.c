@@ -40,8 +40,15 @@ void add_command(char *name, struct ast_list *actions, struct sym_list *args, ui
         return;
     }
 
-    int i;
-    struct command c;
+    for (int i = 0; i < num_commands; i++) {
+        /* command found */
+
+        if(!strcmp(command_table[i].name, name)) {
+            yyerror("command with name %s already defined\n", name);
+            return;
+        }
+    }
+
     uint8_t checked_opcode;
 
     if (opcode == 0) {
@@ -65,16 +72,15 @@ void add_command(char *name, struct ast_list *actions, struct sym_list *args, ui
 
     }
 
+    struct command c;
+    int i;
+
     for (i = 0; i < num_commands; i++) {
 
         c = command_table[i];
 
-        /* command found */
-        if(!strcmp(c.name, name)) {
-            yyerror("command with name %s already defined\n", name);
-            return;
-        }
-        else if (strcmp(c.name, name) > 0) {
+        /* order commands by opcode */
+        if (c.opcode > checked_opcode) {
             for (int j = num_commands; j > i; j--) {
                 command_table[j] = command_table[j - 1];
             }
@@ -117,8 +123,8 @@ void dump_ast(FILE *f, struct ast *a) {
             return;
 
             /* expressions, comparisons, assignment*/
-        case '+': case '-': case '*': case '/': case '=':
-        case '1': case '2': case '3': case '4': case '5':
+        case '+': case '-': case '*': case '/': case '=': case '|': case '&': case '^':
+        case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8':
             fprintf(f, "[%c]", a->nodetype);
             dump_ast(f, a->l);
             dump_ast(f, a->r);
@@ -135,8 +141,8 @@ void dump_ast(FILE *f, struct ast *a) {
         case 'v':
             fprintf(f, "[v %s]", ((struct symref *)a)->name);
             return;
-        case 'r':
-            fprintf(f, "[r %s]", ((struct symref *)a)->name);
+        case 'a':
+            fprintf(f, "[a %s]", ((struct symref *)a)->name);
             return;
         case 'm':
             fprintf(f, "[m]");
@@ -154,54 +160,64 @@ int verify_ast(struct ast *a, struct sym_list *sl) {
     switch(a->nodetype) {
         /* constant */
         case 'n':
-            return 1;
+            return 0;
 
-            /* expressions, comparisons, assignment*/
-        case '+': case '-': case '*': case '/': case '=':
-        case '1': case '2': case '3': case '4': case '5':
-            return verify_ast(a->l, sl) && verify_ast(a->r, sl);
+        /* assignment */
+        case '=':
+            if (a->l->nodetype == 'v') a->l->nodetype == 'a';
+            return verify_ast(a->l, sl) | verify_ast(a->r, sl);
+
+            /* expressions, comparisons*/
+        case '+': case '-': case '*': case '/': case '|': case '&': case '^':
+        case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8':
+            return verify_ast(a->l, sl) | verify_ast(a->r, sl);
 
             /* if statement, check conditional and result */
         case 'i':
-            return verify_ast(((struct flow *)a)->cond, sl) && verify_ast(((struct flow *)a)->then, sl);
+            return verify_ast(((struct flow *)a)->cond, sl) | verify_ast(((struct flow *)a)->then, sl);
 
             /* variable, register, and memory asts */
         case 'v':
-        case 'r':
+        case 'a':
             return verify_ref(((struct symref *)a), sl);
         case 'm':
             return verify_ast(((struct memref *)a)->loc, sl);
         default:
             yyerror("bad nodetype");
-            return 0;
+            return 1;
     }
 }
 
 int verify_ref(struct symref *symr, struct sym_list *sl) {
 
     if (!strcmp("PC", symr->name)) {
-        symr->nodetype = 'r';
-        return 1;
+        return 0;
     }
 
     for (int i = 0; i < sys_info.num_regs; i++) {
         if (sys_info.reg_names[i] && !strcmp(sys_info.reg_names[i], symr->name)) {
-            symr->nodetype = 'r';
-            return 1;
+            return 0;
         }
     }
 
     for (; sl; sl = sl->next)
     {
         if (!strcmp(sl->sym->name, symr->name)) {
-            if (symr->nodetype == 'r') {
-                sl->sym->type = 1;
+
+            /* if the symref is to an argument, and it's being assigned to, make sure that it can't be a literal */
+            if (symr->nodetype == 'a') {
+                if (sl->sym->type == 2 | sl->sym->type == 4 | sl->sym->type == 5 | sl->sym->type == 6) {
+                    yyerror("assignment to argument %s that can take immediate value", symr->name);
+                    return 2;
+                }
             }
-            return 1;
+
+            return 0;
+
         }
     }
-
-    return 0;
+    yyerror("reference to unknown register/variable %s", symr->name);
+    return 1;
 
 }
 

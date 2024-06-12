@@ -1,0 +1,93 @@
+%rax = R[0]
+%rcx = R[1]
+%rdx = R[2]
+%rbx = R[3]
+%rsp = R[4]
+%rbp = R[5]
+%rsi = R[6]
+%rdi = R[7]
+%r8 = R[8]
+%r9 = R[9]
+%r10 = R[10]
+%r11 = R[11]
+%r12 = R[12]
+%r13 = R[13]
+%r14 = R[14]
+flags = R[15]
+
+define 0x20 rrmovq rA:r, rB:r {rB := rA;}
+
+define 0x30 irmovq V:i, rB:r {rB := V;}
+
+define 0x40 rmmovq rA:r, mB:m {mB := rA;}
+
+define 0x50 mrmovq mA:m, rB:r {rB := mA;}
+
+define 0x60 addq rA:r, rB:r 
+{
+flags := 0;
+flags := flags | 0b100 : (((rA < 0) && (rB < 0) && ((rA + rB) > 0)) || ((rA > 0) && (rB > 0) && ((rA + rB) < 0)));
+rB := rB + rA;
+flags := flags | 0b001 : rB == 0;
+flags := flags | 0b010 : rB < 0;
+}
+
+define 0x61 subq rA:r, rB:r
+{
+flags := 0;
+flags := flags | 0b100 : (((rA < 0) && (rB > 0) && ((rB - rA) < 0)) || ((rA > 0) && (rB < 0) && ((rB - rA) > 0)));
+rB := rB - rA;
+flags := flags | 0b001 : rB == 0;
+flags := flags | 0b010 : rB < 0;
+}
+
+define 0x62 andq rA:r, rB:r
+{
+flags := 0;
+rB := rB & rA;
+flags := flags | 0b001 : rB == 0;
+flags := flags | 0b010 : rB < 0;
+}
+
+define 0x63 xorq rA:r, rB:r
+{
+flags := 0;
+rB := rB ^ rA;
+flags := flags | 0b001 : rB == 0;
+flags := flags | 0b010 : rB < 0;
+}
+
+define 0x70 jmp Dest:i
+{
+PC := Dest;
+}
+
+define 0x71 jle Dest:i
+{
+PC := Dest : ((((flags & 0b100) ^ (flags & 0b010)) | (flags & 0b001)) != 0);
+}
+
+define 0x72 jl Dest:i
+{
+PC := Dest : ((flags & 0b100) ^ (flags & 0b010)) != 0;
+}
+
+define 0x73 je Dest:i
+{
+PC := Dest : (flags & 0b001) != 0;
+}
+
+define 0x74 jne Dest:i
+{
+PC := Dest : (flags & 0b001) == 0;
+}
+
+define 0x75 jge Dest:i
+{
+PC := Dest : ((flags & 0b100) ^ (flags & 0b010)) == 0;
+}
+
+define 0x76 jg Dest:i
+{
+PC := Dest : ((((flags & 0b100) ^ (flags & 0b010)) | (flags & 0b001)) == 0);
+}

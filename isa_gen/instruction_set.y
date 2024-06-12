@@ -25,15 +25,17 @@ char *tmp[64];
 
 %token <d> NUMBER
 %token <strval> NAME
+%token <s> ARG_SYMBOL
 %token NEWLINE
 %token DEFINE
 %token <d> REG
 
 %nonassoc COND
 %right ASSIGN
-%nonassoc <c> CMP
+%left <c> CMP
 %right NEWLINE
 
+%left '|' '&' '^'
 %left '+' '-'
 %left '*' '/'
 
@@ -75,9 +77,14 @@ command: DEFINE NAME arg_list opt_linebreak '{' action_list '}'
                             for (struct ast_list *mask = $6; mask; mask = mask->next)
                             {
                                 count++;
-                                if (!verify_ast(mask->a, $3))
+                                int errcode;
+                                if (errcode = verify_ast(mask->a, $3))
                                 {
-                                    yyerror("use of undefined register/variable in command %d action %d", command_no, count);
+                                    /*
+                                    if (errcode == 1) yyerror("use of undefined register/variable in command %d action %d", command_no, count);
+                                    else if (errcode == 2) yyerror("assignment to argument that could be immediate value in command %d action %d", command_no, count);
+                                    else yyerror("use of undefined register/variable and assignment to argument that could be immediate value in command %d action %d", command_no, count);
+                                    */
                                     check = 1;
                                     break;
                                 }
@@ -95,9 +102,9 @@ command: DEFINE NAME arg_list opt_linebreak '{' action_list '}'
                             for (struct ast_list *mask = $5; mask; mask = mask->next)
                             {
                                 count++;
-                                if (!verify_ast(mask->a, NULL))
+                                if (verify_ast(mask->a, NULL))
                                 {
-                                    yyerror("use of undefined register/variable in command %d action %d", command_no, count);
+                                    
                                     check = 1;
                                     break;
                                 }
@@ -115,9 +122,9 @@ command: DEFINE NAME arg_list opt_linebreak '{' action_list '}'
                             for (struct ast_list *mask = $7; mask; mask = mask->next)
                             {
                                 count++;
-                                if (!verify_ast(mask->a, $4))
+                                if (verify_ast(mask->a, $4))
                                 {
-                                    yyerror("use of undefined register/variable in command %d action %d", command_no, count);
+                                    
                                     check = 1;
                                     break;
                                 }
@@ -135,9 +142,9 @@ command: DEFINE NAME arg_list opt_linebreak '{' action_list '}'
                             for (struct ast_list *mask = $6; mask; mask = mask->next)
                             {
                                 count++;
-                                if (!verify_ast(mask->a, NULL))
+                                if (verify_ast(mask->a, NULL))
                                 {
-                                    yyerror("use of undefined register/variable in command %d action %d", command_no, count);
+                                    
                                     check = 1;
                                     break;
                                 }
@@ -159,16 +166,19 @@ symbol: NAME               { $$ = newsym($1, 0); }
 ;
 
    // list of register and variable arguments
-arg_list: symbol                { $$ = new_sym_list($1, NULL); }
-    | arg_list ',' symbol       { $$ = add_sym($1, new_sym_list($3, NULL)); }
+arg_list: ARG_SYMBOL                { $$ = new_sym_list($1, NULL); }
+    | arg_list ',' ARG_SYMBOL       { $$ = add_sym($1, new_sym_list($3, NULL)); }
 ;
 
     // expression - any number, memory reference, register, variable, operation, or comparison
-exp: exp CMP exp                { $$ = newcmp($2, $1, $3); }
+exp:  exp CMP exp               { $$ = newcmp($2, $1, $3); }
     | exp '+' exp               { $$ = newast('+', $1, $3); }
     | exp '-' exp               { $$ = newast('-', $1, $3); }
     | exp '*' exp               { $$ = newast('*', $1, $3); }
     | exp '/' exp               { $$ = newast('*', $1, $3); }
+    | exp '|' exp               { $$ = newast('|', $1, $3); }
+    | exp '&' exp               { $$ = newast('&', $1, $3); }
+    | exp '^' exp               { $$ = newast('^', $1, $3); }
     | '(' exp ')'               { $$ = $2; }
     | symbol                    { $$ = newsymref('v', NULL, $1->name); free($1); }
     | memory                    { $$ = $1; }
@@ -181,9 +191,9 @@ conditional: COND exp           { $$ = newflow($2, NULL); }
 
     // TODO: figure out how to assign registers to point to symbols in args
     // some variety of assignment operation, ends with semicolon
-action: symbol ASSIGN exp ';'           { $$ = newast('=', newsymref('r', NULL, $1->name), $3); free($1); }
+action: symbol ASSIGN exp ';'           { $$ = newast('=', newsymref('a', NULL, $1->name), $3); free($1); }
     | memory ASSIGN exp ';'             { $$ = newast('=', $1, $3); }
-    | symbol ASSIGN exp conditional ';' { struct ast *front = newast('=', newsymref('r', NULL, $1->name), $3);
+    | symbol ASSIGN exp conditional ';' { struct ast *front = newast('=', newsymref('a', NULL, $1->name), $3);
                                           ((struct flow *) $4)->then = front;
                                           $$ = $4;
                                           free($1);

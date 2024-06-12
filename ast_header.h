@@ -21,6 +21,15 @@ struct command {
 *   6 - r/m/i
 *
 */
+
+#define SYM0 ("r")
+#define SYM1 ("m")
+#define SYM2 ("i")
+#define SYM3 ("r/m")
+#define SYM4 ("r/i")
+#define SYM5 ("m/i")
+#define SYM6 ("r/m/i")
+
 struct symbol {
     char *name;
     int type;
@@ -83,14 +92,14 @@ void treefree(struct ast *);
 /**
  * Node types in ast
  *
- * + - * /  - operations
- * 1-5      - comparison ops
- * i        - conditional
- * =        - assignment
- * v        - variable reference
- * r        - register reference
- * n        - number
- * m        - memory location
+ * + - * / | &  - operations
+ * 1-8          - comparison ops
+ * i            - conditional
+ * =            - assignment
+ * v            - general reference
+ * a            - reference that is assigned to (symbol can't be immediate)
+ * n            - number
+ * m            - memory location
  *
  */
 struct ast {
