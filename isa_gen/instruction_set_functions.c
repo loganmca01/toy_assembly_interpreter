@@ -221,8 +221,7 @@ int verify_ref(struct symref *symr, struct sym_list *sl) {
 
 }
 
-// helper function, generates default built in registers,
-// will eventually be replaced when custom registers are implemented
+// helper function, currently just sets up a buffer for memory regions
 void generate_default_system() {
 
     /* buffer for memory regions to be loaded initially */
@@ -242,8 +241,6 @@ void yyerror(char *s, ...) {
 
 }
 
-extern int yyparse(void);
-extern int parse_system_info(FILE *f);
 
 int main(int argc, char **argv) {
 
@@ -260,8 +257,6 @@ int main(int argc, char **argv) {
 
     generate_default_system();
 
-
-    /* NOTE: some impossible way after this function call argv[3] is different */
     parse_system_info(sys_file);
 
     num_commands = 0;
@@ -273,8 +268,6 @@ int main(int argc, char **argv) {
         fprintf(stderr, "error opening instruction set file\n");
         exit(1);
     }
-
-    /* generate default system information, can be altered in passed rtn file */
 
     yyparse();
 
@@ -311,11 +304,6 @@ int main(int argc, char **argv) {
     fprintf(out, "\n");
 
     fprintf(out, "number-of-instructions: %d\n", num_commands);
-
-    /*
-    fprintf(out, "literal-value-symbol: %c\n", sys_info.lit_sym);
-    fprintf(out, "register-value-symbol: %c\n", sys_info.reg_sym);
-    */
 
     for (int i = 0; i < num_commands; i++) {
 

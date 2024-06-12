@@ -27,3 +27,4 @@ extern FILE *yyin;
 extern int yylineno;
 extern int command_no;
 void yyerror(char* s, ...);
+extern int yyparse(void);

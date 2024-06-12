@@ -68,13 +68,12 @@
                                     }
 
 R\[[0-9]+\]                         { 
-                                        /* TODO: check that register number is in range, add a type to REG and set it */
                                         int sum = 0;
                                         for (int i = 2; yytext[i] != ']'; i++) {                                        
                                             sum *= 10 * (i - 2);
                                             sum += yytext[i] - '0';
                                         }
-                                        if (sum >= sys_info.num_regs)
+                                        if (sum < 0 || sum >= sys_info.num_regs)
                                             yyerror("named register out of bounds");
                                         else {
                                             yylval.d = sum;
@@ -83,14 +82,6 @@ R\[[0-9]+\]                         {
                                     }
 
 [a-zA-Z%][a-zA-Z0-9]*   {
-                /* todo: add checking for register names in parser rather than lexer
-                for (int i = 0; i < sys_info.num_regs; i++) {
-                    if (!strcmp(sys_info.regs[i], yytext)) {
-                        yyerror("%s is an existing register and can't be used as an argument", yytext);
-                        return YYerror;
-                    }
-                }
-                */
 
                 yylval.strval = strdup(yytext);
                 return NAME;
@@ -104,3 +95,4 @@ R\[[0-9]+\]                         {
 \n          { return NEWLINE; }
 .           { yyerror("unknown character %c", yytext[0]); }
 
+%%

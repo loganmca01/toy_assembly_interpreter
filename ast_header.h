@@ -67,11 +67,6 @@ struct system_information {
     int num_regions;
     struct memory_region *mem_regions;
 
-    /* todo: add support for different memory regions
-    int num_regions;
-    struct memory_region *regions;
-    */
-
 };
 
 struct sym_list *new_sym_list(struct symbol *sym, struct sym_list *next);

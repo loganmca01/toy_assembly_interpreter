@@ -6,8 +6,6 @@
 #include <string.h>
 #include "instruction_set.h"
 
-char *tmp[64];
-
 %}
 
 %define parse.error detailed
@@ -17,7 +15,6 @@ char *tmp[64];
     struct ast_list *al;
     struct symbol *s;
     struct sym_list *sl;
-    //struct command *cmd;
     char *strval;
     char c;
     int d;
@@ -80,11 +77,6 @@ command: DEFINE NAME arg_list opt_linebreak '{' action_list '}'
                                 int errcode;
                                 if (errcode = verify_ast(mask->a, $3))
                                 {
-                                    /*
-                                    if (errcode == 1) yyerror("use of undefined register/variable in command %d action %d", command_no, count);
-                                    else if (errcode == 2) yyerror("assignment to argument that could be immediate value in command %d action %d", command_no, count);
-                                    else yyerror("use of undefined register/variable and assignment to argument that could be immediate value in command %d action %d", command_no, count);
-                                    */
                                     check = 1;
                                     break;
                                 }
