@@ -12,7 +12,11 @@ clean:
 	rm -f isa_interpreter && \
 	rm -f isa_gen/instruction_set.lex.c && \
 	rm -f isa_gen/instruction_set.tab.c && \
-	rm -f isa_gen/instruction_set.tab.h
+	rm -f isa_gen/instruction_set.tab.h && \
+	rm -f vm/vm_parser.lex.c && \
+	rm -f vm/vm_parser.tab.c && \
+	rm -f vm/vm_parser.tab.h && \
+	rm -f vm_gen
 
 wsl-tkinter:
 	sudo apt-get install python3-tk
