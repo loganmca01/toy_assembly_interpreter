@@ -295,6 +295,8 @@ int main(int argc, char **argv) {
 
     fprintf(out, "memory-size: %d\n", sys_info.mem_size);
 
+    fprintf(out, "number-of-regions: %d\n", sys_info.num_regions);
+
     fprintf(out, "memory-regions:");
 
     for (int i = 0; i < sys_info.num_regions; i++) {

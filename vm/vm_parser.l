@@ -25,7 +25,18 @@
 "]" |
 "," |
 ":" |
-";"         { return yytext[0]; }
+";"             { return yytext[0]; }
+
+SYSTEM                  { return SYSTEM_L; }
+register-count:         { return REGISTER_COUNT_L; }
+memory-size:            { return MEMORY_SIZE_L; }
+number-of-regions       { return NUMBER_OF_REGIONS_L; }
+memory-regions          { return MEMORY_REGIONS_L; }
+number-of-instructions: { return NUMBER_OF_INSTRUCTIONS_L; }
+COMMAND-NO              { return COMMAND_NO_L; }
+name:                   { return NAME_L; }
+opcode:                 { return OPCODE_L; }
+arguments:              { return ARGUMENTS_L; }
 
 [a-zA-Z%][a-zA-Z0-9\-]*   {
 
