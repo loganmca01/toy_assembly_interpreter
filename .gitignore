@@ -1,7 +1,7 @@
 # flex bison specific
-instruction_set.tab.c
-instruction_set.tab.h
-instruction_set.lex.c
+*.tab.c
+*.tab.h
+*.lex.c
 lex.yy.c
 isa_interpreter
 

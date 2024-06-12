@@ -17,13 +17,14 @@
 
 %token <d> NUMBER
 %token <strval> NAME
+%token NEWLINE
 
 
 
 %start system
 %%
 
-system: NAME ':' NUMBER         { printf("test\n"); }
+system: NAME NEWLINE NAME ':' NUMBER         { printf("test\n"); }
 
 
 
