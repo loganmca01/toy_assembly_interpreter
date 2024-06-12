@@ -15,13 +15,55 @@
 %r14 = R[14]
 flags = R[15]
 
-define 0x20 rrmovq rA:r, rB:r {rB := rA;}
+define 0x20 rrmovq rA:r, rB:r 
+{
+rB := rA;
+}
 
-define 0x30 irmovq V:i, rB:r {rB := V;}
+define 0x21 cmovle rA:r, rB:r
+{
+rB := rA : ((((flags & 0b100) ^ (flags & 0b010)) | (flags & 0b001)) != 0);
+}
 
-define 0x40 rmmovq rA:r, mB:m {mB := rA;}
+define 0x22 cmovl rA:r, rB:r
+{
+rB := rA : ((flags & 0b100) ^ (flags & 0b010)) != 0;
+}
 
-define 0x50 mrmovq mA:m, rB:r {rB := mA;}
+define 0x23 cmove rA:r, rB:r
+{
+rB := rA : (flags & 0b001) != 0;
+}
+
+define 0x24 cmovne rA:r, rB:r
+{
+rB := rA : (flags & 0b001) == 0;
+}
+
+define 0x25 cmovge rA:r, rB:r
+{
+rB := rA : ((flags & 0b100) ^ (flags & 0b010)) == 0;
+}
+
+define 0x26 cmovg rA:r, rB:r
+{
+rB := rA : ((((flags & 0b100) ^ (flags & 0b010)) | (flags & 0b001)) == 0);
+}
+
+define 0x30 irmovq V:i, rB:r 
+{
+rB := V;
+}
+
+define 0x40 rmmovq rA:r, mB:m 
+{
+mB := rA;
+}
+
+define 0x50 mrmovq mA:m, rB:r 
+{
+rB := mA;
+}
 
 define 0x60 addq rA:r, rB:r 
 {
@@ -90,4 +132,29 @@ PC := Dest : ((flags & 0b100) ^ (flags & 0b010)) == 0;
 define 0x76 jg Dest:i
 {
 PC := Dest : ((((flags & 0b100) ^ (flags & 0b010)) | (flags & 0b001)) == 0);
+}
+
+define 0x80 call Dest:i
+{
+%rsp := %rsp - 4;
+[%rsp] := PC + 6;
+PC := Dest;
+}
+
+define 0x90 ret
+{
+PC := [%rsp];
+%rsp := %rsp + 4;
+}
+
+define 0xA0 pushq rA:r
+{
+%rsp := %rsp - 4;
+[%rsp] := rA;
+}
+
+define 0xB0 popq rA:r
+{
+rA := [%rsp];
+%rsp := %rsp + 4;
 }
