@@ -19,6 +19,30 @@ void yyerror(char *s, ...) {
 
 }
 
+
+/* for testing parser */
+void print_system_info() {
+    
+    printf("num instructions: %d\n", sys_info.num_instructions);
+
+    printf("num regs: %d\n", sys_info.num_regs);
+
+    for (int i = 0; i < sys_info.num_regs; i++) {
+        printf("%d: ", i);
+        if (sys_info.reg_names[i]) printf("%s", sys_info.reg_names[i]);
+        printf("\n");
+    }
+
+    printf("mem size: %d\n", sys_info.mem_size);
+
+    printf("num mem regions: %d\n", sys_info.num_regions);
+
+    for (int i = 0; i < sys_info.num_regions; i++) {
+        printf("%s %d %d %d\n", sys_info.mem_regions[i].name, sys_info.mem_regions[i].base, sys_info.mem_regions[i].bound, sys_info.mem_regions[i].direction);
+    }
+
+}
+
 int main(int argc, char **argv) {
 
     char buff[64];
@@ -36,5 +60,7 @@ int main(int argc, char **argv) {
     yyparse();
 
     fclose(yyin);
+
+    print_system_info();
 
 }

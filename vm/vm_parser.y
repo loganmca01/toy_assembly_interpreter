@@ -3,6 +3,7 @@
 #include "vm.h"
 #include <stdint.h>
 
+int current_region = 0;
 
 %}
 
@@ -39,7 +40,7 @@ system: SYSTEM_L NEWLINE
         memory_info
         memory_regions
         instruction_num                         
-        instruction_list                        {  }
+        instruction_list                        {}
 ;
 
 register_num:  REGISTER_COUNT_L NUMBER NEWLINE  { 
@@ -57,10 +58,33 @@ register_name: NUMBER ',' NAME NEWLINE          { sys_info.reg_names[$1] = $3; }
 ;
 
 memory_info: MEMORY_SIZE_L NUMBER NEWLINE
-             NUMBER_OF_REGIONS_L NUMBER NEWLINE { sys_info.mem_size = $2; sys_info.num_regions = $5; }
+             NUMBER_OF_REGIONS_L NUMBER NEWLINE { sys_info.mem_size = $2; sys_info.num_regions = $5; sys_info.mem_regions = malloc(sizeof (struct memory_region) * $5); }
+;
 
+memory_regions: MEMORY_REGIONS_L memory_region_list NEWLINE                 {}
+;
 
+memory_region_list: '[' NAME NUMBER NUMBER NUMBER ']'                       { 
+                                                                                sys_info.mem_regions[current_region].name = $2;
+                                                                                sys_info.mem_regions[current_region].base = $3;
+                                                                                sys_info.mem_regions[current_region].bound = $4;
+                                                                                sys_info.mem_regions[current_region++].direction = $5;
+                                                                            }
+                |   memory_region_list '[' NAME NUMBER NUMBER NUMBER ']'    { 
+                                                                                sys_info.mem_regions[current_region].name = $3;
+                                                                                sys_info.mem_regions[current_region].base = $4;
+                                                                                sys_info.mem_regions[current_region].bound = $5;
+                                                                                sys_info.mem_regions[current_region++].direction = $6;
+                                                                            }
+;
 
+instruction_num: NUMBER_OF_INSTRUCTIONS_L NUMBER        { sys_info.num_instructions = $2; }
+;
 
+instruction_list: instruction                           {}
+                | instruction_list instruction          {}
+;
+
+instruction: 
 
 %%
