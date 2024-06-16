@@ -154,7 +154,7 @@ command: DEFINE NAME arg_list opt_linebreak '{' action_list '}'
 memory: '[' exp ']'        { $$ = newmemref('m', $2); }
 ;
 
-symbol: NAME               { $$ = newsym($1, 0); }
+symbol: NAME               { $$ = newsym($1, 0, 0); }
 ;
 
    // list of register and variable arguments

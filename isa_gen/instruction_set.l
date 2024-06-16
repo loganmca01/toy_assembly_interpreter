@@ -63,7 +63,7 @@
                                             type = -1;
                                         }
 
-                                        yylval.s = newsym(strdup(yytext), type); 
+                                        yylval.s = newsym(strdup(yytext), type, 0); 
                                         return ARG_SYMBOL; 
                                     }
 

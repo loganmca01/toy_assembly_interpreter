@@ -54,12 +54,13 @@ struct sym_list *add_sym(struct sym_list *orig, struct sym_list *addit) {
 
 }
 
-struct symbol *newsym(char *name, int type) {
+struct symbol *newsym(char *name, int type, int value) {
 
     struct symbol *s = malloc(sizeof(struct symbol));
 
     s->name = name;
     s->type = type;
+    s->value = value;
 
     return s;
 

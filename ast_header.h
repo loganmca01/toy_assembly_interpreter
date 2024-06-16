@@ -33,6 +33,7 @@ struct command {
 struct symbol {
     char *name;
     int type;
+    int value;
 };
 
 struct sym_list {
@@ -135,7 +136,7 @@ struct memref {
     struct ast *loc;
 };
 
-struct symbol *newsym(char *name, int type);
+struct symbol *newsym(char *name, int type, int value);
 
 // construct ast nodes, always cast back to ast pointer
 struct ast *newast(char nodetype, struct ast *l, struct ast *r);
