@@ -7,7 +7,6 @@ int current_region = 0;
 int current_instruction = 0;
 
 
-
 %}
 
 %define parse.error detailed
@@ -54,22 +53,23 @@ system: SYSTEM_L NEWLINE
         memory_info
         memory_regions
         instruction_num                         
-        instruction_list                        {}
+        instruction_list                             {}
 ;
 
 register_num:   REGISTER_COUNT_L NUMBER NEWLINE  
                     { 
                         sys_info.num_regs = $2;
                         sys_info.reg_names = arena_allocate(sizeof (char *) * $2);
-                        for (int i = 0; i < $2; i++) sys_info.reg_names[i] = NULL;
+                        registers = arena_allocate(sizeof (struct symbol) * $2);
                     }
 ;
 
 register_list: register_name                    {}
             |  register_list register_name      {}
 ;
-
-register_name: NUMBER ',' NAME NEWLINE          { sys_info.reg_names[$1] = $3; }
+                                                    /* TODO: remove redundancy (named in 2 different places) */
+register_name: NUMBER ',' NAME NEWLINE          { registers[$1].name = $3; sys_info.reg_names[$1] = $3; }
+            |  NUMBER ',' NEWLINE               {}
 ;
 
 memory_info: MEMORY_SIZE_L NUMBER NEWLINE
@@ -106,21 +106,29 @@ instruction:    COMMAND_NO_L NUMBER NEWLINE
                 NAME_L NAME NEWLINE
                 OPCODE_L NUMBER NEWLINE
                 ARGUMENTS_L arg_list NEWLINE
-                action_list NEWLINE                           
+                action_list NEWLINE                         
                     {   
-
+                        //printf("%d\n", $8);
+                        struct command i;
+                        i.name = $5;
+                        i.opcode = $8;
+                        i.args = $11;
+                        i.actions = $13;
+                        instructions[$8] = i;
                         current_instruction++;
                     }
 ;
 
-arg_list: /* */             { $$ = NULL; }
+arg_list: /* */             { $$ = NULL; current_sl = $$; }
         | arg_list arg                                  
             {
                 if ($1 == NULL) {
                     $$ = new_sym_list_a($2, NULL);
+                    current_sl = $$;
                 }
                 else {
                     $$ = add_sym($1, new_sym_list_a($2, NULL));
+                    current_sl = $$;
                 }
             }
 ;
@@ -135,10 +143,57 @@ action_list: tree NEWLINE               { $$ = new_ast_list_a($1, NULL); }
 tree: node          { $$ = $1; }
     | tree node     { $$ = $1; }
 ;
+    /* IDEA: change handling from individual characters to CHAR token (duh) */
 
-node: '[' CHAR ']'          { $$ = NULL; }
-    | '[' CHAR NAME ']'     { $$ = NULL; }
-    | '[' CHAR NUMBER ']'   { $$ = NULL; }
-;
+node: '[' NAME ']'          
+{
+    //printf("%d test %s\n", yylineno, $2);
+    struct ast *current = pop_stack();
+    struct ast *next;
+    switch ($2[0]) {
+        case '=': case '+': case '-': case '*': case '/': case '|': case '&': case '^':
+            next = newast_a($2[0], NULL, NULL);
+            break;
+        case 'i':
+            next = newflow_a(NULL, NULL);
+            break;
+        case 'm':
+            next = newmemref_a('m', NULL);
+            break;
+        default:
+            yyerror("error rebuilding ast, make sure you're using an isa file generated through the isa_interpreter");
+    }
+    int check = handle_node(current, next, IS_PUSHED);
+    if (check) yyerror("error rebuilding ast, make sure you're using an isa file generated through the isa_interpreter");
+    $$ = next;
+}
+    | '[' NAME NAME ']'
+{
+    //printf("%d test2 %s %s\n", yylineno, $2, $3);
+    struct ast *current = pop_stack();
+    struct ast *next = newsymref_a($2[0], NULL, $3);
+    int check = handle_node(current, next, IS_REF);
+    if (check) yyerror("error rebuilding ast, make sure you're using an isa file generated through the isa_interpreter");
+    $$ = next;
+}
+    | '[' NAME NUMBER ']'   
+{
+    //printf("%d test3 %s %d\n", yylineno, $2, $3);
+    struct ast *current = pop_stack();
+    struct ast *next = newnum_a($3);
+    int check = handle_node(current, next, 0);
+    if (check) yyerror("error rebuilding ast, make sure you're using an isa file generated through the isa_interpreter");
+    $$ = next;
+}
+    | '[' NUMBER ']'   
+{
+    //printf("%d test4 %d\n", yylineno, $2);
+    struct ast *current = pop_stack();
+    struct ast *next = newcmp_a('0' + $2, NULL, NULL);
+    int check = handle_node(current, next, IS_PUSHED);
+    if (check) yyerror("error rebuilding ast, make sure you're using an isa file generated through the isa_interpreter");
+    $$ = next;
+}
+
 
 %%

@@ -9,14 +9,7 @@
 
 %%
 
-"+" |
-"-" |
-"*" |
-"/" |
-"|" |
-"&" |
-"^" |
-"=" |
+
 "(" |
 ")" |
 "{" |
@@ -38,7 +31,8 @@ name:                   { return NAME_L; }
 opcode:                 { return OPCODE_L; }
 arguments:              { return ARGUMENTS_L; }
 
-[a-zA-Z%][a-zA-Z0-9\-]*   {
+    /* todo: replace strdup with function using arena_allocate */
+[a-zA-Z%+\-\*\/&\|=\^][a-zA-Z0-9\-]*   {
 
                 yylval.strval = strdup(yytext);
                 return NAME;

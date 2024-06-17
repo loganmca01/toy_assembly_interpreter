@@ -326,9 +326,8 @@ int main(int argc, char **argv) {
             dump_ast(out, a->a);
             fprintf(out, "\n");
         }
-
-
     }
+    fprintf(out, "\n");
 
     fclose(out);
 

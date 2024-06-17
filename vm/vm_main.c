@@ -4,7 +4,8 @@
 #include <stdarg.h>
 #include <string.h>
 
-int *registers;
+struct symbol *registers;
+struct symbol PC;
 uint8_t *memory;
 
 struct system_information sys_info;
@@ -13,26 +14,47 @@ int arena_pointer;
 
 struct command instructions[OPCODE_MAX];
 
-struct ast **ast_stack;
-int ast_stack_ptr;
 
-struct ast *pop_stack() {
-    return ast_stack[ast_stack_ptr--];
-}
+/* prints ast to file following a BFS */
+void dump_ast(FILE *f, struct ast *a) {
 
-void push_stack(struct ast *node) {
-    ast_stack_ptr++;
-    ast_stack[ast_stack_ptr] = node;
-}
+    switch(a->nodetype) {
+        /* constant */
+        case 'n':
+            fprintf(f, "[n %d]", ((struct numval *)a)->number);
+            return;
 
-void yyerror(char *s, ...) {
-    va_list ap;
-    va_start(ap, s);
+            /* expressions, comparisons, assignment*/
+        case '+': case '-': case '*': case '/': case '=': case '|': case '&': case '^':
+        case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8':
+            fprintf(f, "[%c]", a->nodetype);
+            dump_ast(f, a->l);
+            dump_ast(f, a->r);
+            return;
 
-    fprintf(stderr, "line %d: error: ", yylineno);
-    vfprintf(stderr, s, ap);
-    fprintf(stderr, "\n");
+            /* if statement, dump conditional and result */
+        case 'i':
+            fprintf(f, "[i]");
+            dump_ast(f, ((struct flow *)a)->cond);
+            dump_ast(f, ((struct flow *)a)->then);
+            return;
 
+            /* variable, register, and memory asts */
+        case 'v':
+            fprintf(f, "[v %s]", ((struct symref *)a)->name);
+            return;
+        case 'a':
+            fprintf(f, "[a %s]", ((struct symref *)a)->name);
+            return;
+        case 'm':
+            fprintf(f, "[m]");
+            dump_ast(f, ((struct memref *)a)->loc);
+            return;
+
+        default:
+            fprintf(stderr, "bad nodetype %c\n", a->nodetype);
+            return;
+    }
 }
 
 
@@ -57,20 +79,47 @@ void print_system_info() {
         printf("%s %d %d %d\n", sys_info.mem_regions[i].name, sys_info.mem_regions[i].base, sys_info.mem_regions[i].bound, sys_info.mem_regions[i].direction);
     }
 
-}
+    printf("\n");
 
-void *arena_allocate(size_t size) {
-    void *start = &arena[arena_pointer];
-    arena_pointer += size;
-    if (arena_pointer > ARENA_SIZE) return NULL;
-    return start;
-}
+    struct command c;
 
+    for (int i = 0; i < OPCODE_MAX; i++) {
+
+        c = instructions[i];
+
+        if (c.name == NULL) continue;
+
+        printf("name: %s\n", c.name);
+        printf("opcode: 0x%02x\n", c.opcode);
+        printf("arguments: ");
+
+        for (struct sym_list *s = c.args; s != NULL; s = s->next) {
+            printf("[%d %s]", s->sym->type, s->sym->name);
+        }
+        printf("\n");
+
+        for (struct ast_list *a = c.actions; a != NULL; a = a->next) {
+            dump_ast(stdout, a->a);
+            printf("\n");
+        }
+
+        printf("\n");
+
+    }
+
+}
 
 int main(int argc, char **argv) {
 
-    arena = malloc(sizeof (char) * ARENA_SIZE);
+    PC.name = "PC";
+    PC.value = 0;
+    PC.type = 1;
+
+    arena = calloc(sizeof (char), ARENA_SIZE);
     arena_pointer = 0;
+
+    ast_stack = malloc(sizeof (struct ast *) * STACK_MAX);
+    ast_stack_ptr = -1;
 
     char buff[64];
 
@@ -94,129 +143,5 @@ int main(int argc, char **argv) {
 
 }
 
-/* below are redefinitions of ast struct creator functions using arena_allocate instead of malloc */
-
-struct ast_list *new_ast_list_a(struct ast *a, struct ast_list *next) {
-
-    struct ast_list *astl = arena_allocate(sizeof(struct ast_list));
-
-    if(!astl) {
-        return NULL;
-    }
-
-    astl->a = a;
-    astl->next = next;
-    return astl;
-
-}
-
-struct sym_list *new_sym_list_a(struct symbol *sym, struct sym_list *next) {
-
-    struct sym_list *sl = arena_allocate(sizeof(struct sym_list));
-
-    if(!sl) {
-        return NULL;
-    }
-
-    sl->sym = sym;
-    sl->next = next;
-    return sl;
-
-}
 
 
-struct symbol *newsym_a(char *name, int type, int value) {
-
-    struct symbol *s = arena_allocate(sizeof(struct symbol));
-
-    s->name = name;
-    s->type = type;
-    s->value = value;
-
-    return s;
-
-}
-
-
-
-struct ast *newast_a(char nodetype, struct ast *l, struct ast *r)
-{
-    struct ast *a = arena_allocate(sizeof(struct ast));
-
-    if(!a) {
-        return NULL;
-    }
-    a->nodetype = nodetype;
-    a->l = l;
-    a->r = r;
-    return a;
-}
-
-struct ast *newnum_a(int d)
-{
-    struct numval *a = arena_allocate(sizeof(struct numval));
-
-    if(!a) {
-        return NULL;
-    }
-    a->nodetype = 'n';
-    a->number = d;
-    return (struct ast *)a;
-}
-
-struct ast *newcmp_a(char cmptype, struct ast *l, struct ast *r)
-{
-    struct ast *a = arena_allocate(sizeof(struct ast));
-
-    if(!a) {
-        return NULL;
-    }
-    a->nodetype = cmptype;
-    a->l = l;
-    a->r = r;
-    return a;
-}
-
-struct ast *newsymref_a(char reftype, struct symbol *s, char *name) {
-
-    struct symref *a = arena_allocate(sizeof(struct symref));
-
-    if (!a) {
-        return NULL;
-    }
-
-    a->nodetype = reftype;
-    a->sym = s;
-    a->name = name;
-    return (struct ast *)a;
-
-}
-
-struct ast *newmemref_a(char nodetype, struct ast *loc) {
-
-    struct memref *a = arena_allocate(sizeof(struct memref));
-
-    if (!a) {
-        return NULL;
-    }
-
-    a->nodetype = nodetype;
-    a->loc = loc;
-    return (struct ast *)a;
-
-}
-
-struct ast *newflow_a(struct ast *cond, struct ast *then) {
-
-    struct flow *a = arena_allocate(sizeof(struct flow));
-
-    if (!a) {
-        return NULL;
-    }
-
-    a->nodetype = 'i';
-    a->cond = cond;
-    a->then = then;
-    return (struct ast *)a;
-
-}
