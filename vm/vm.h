@@ -52,4 +52,7 @@ extern int yylineno;
 extern int yyparse(void);
 void yyerror(char* s, ...);
 
+/* ipc functions */
+
+
 /* VM functions */
