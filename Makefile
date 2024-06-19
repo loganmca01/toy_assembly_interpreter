@@ -8,6 +8,10 @@ vm_gen: vm/vm_main.c vm/vm_parser.y vm/vm_parser.l vm/vm.h ast_functions.c vm/vm
 		flex -ovm/vm_parser.lex.c vm/vm_parser.l && \
 		cc -g -o $@ vm/vm_parser.tab.c vm/vm_parser.lex.c vm/vm_main.c ast_functions.c vm/vm_parser_functions.c vm/vm_ipc.c -lm
 
+vm-interface: 	vm_interface/shell_interface.c
+				cc -g -o $@ vm_interface/shell_interface.c
+
+
 clean:
 	rm -f isa_interpreter && \
 	rm -f isa_gen/instruction_set.lex.c && \
@@ -16,6 +20,7 @@ clean:
 	rm -f vm/vm_parser.lex.c && \
 	rm -f vm/vm_parser.tab.c && \
 	rm -f vm/vm_parser.tab.h && \
+	rm -f vm-interface			\
 	rm -f vm_gen
 
 wsl-tkinter:

@@ -53,6 +53,8 @@ extern int yyparse(void);
 void yyerror(char* s, ...);
 
 /* ipc functions */
-
+int open_connection();
+int send_message(char *data);
+char *receive_message();
 
 /* VM functions */

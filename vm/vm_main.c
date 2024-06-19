@@ -141,6 +141,23 @@ int main(int argc, char **argv) {
 
     printf("%d\n", arena_pointer);
 
+    printf("waiting on connection\n");
+
+    int status;
+
+    while ((status = open_connection()) == 1);
+
+    if (status == -1) {
+        printf("doom\n");
+        return 1;
+    }
+
+    printf("connection made\n");
+
+    send_message("successfully connected to VM\n");
+
+    send_message("testing\n");
+
 
 }
 
