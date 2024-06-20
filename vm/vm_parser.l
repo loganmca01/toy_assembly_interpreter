@@ -44,6 +44,6 @@ arguments:              { return ARGUMENTS_L; }
 
 [ \t\r]     {}
 \n          { return NEWLINE; }
-.           { yylval.c = yytext[0]; return CHAR; }
+.           { yyerror("unknown character %c", yytext[0]); }
 
 %%

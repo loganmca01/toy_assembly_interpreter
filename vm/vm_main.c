@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include <fcntl.h>
 
 struct symbol *registers;
 struct symbol PC;
@@ -15,7 +16,7 @@ int arena_pointer;
 struct command instructions[OPCODE_MAX];
 
 
-/* prints ast to file following a BFS */
+/* prints ast to file, used for testing */
 void dump_ast(FILE *f, struct ast *a) {
 
     switch(a->nodetype) {
@@ -109,8 +110,9 @@ void print_system_info() {
 
 }
 
-int main(int argc, char **argv) {
-
+/* organization function to help declutter main */
+void setup_defaults() {
+    
     PC.name = "PC";
     PC.value = 0;
     PC.type = 1;
@@ -120,16 +122,27 @@ int main(int argc, char **argv) {
 
     ast_stack = malloc(sizeof (struct ast *) * STACK_MAX);
     ast_stack_ptr = -1;
+}
+
+int main(int argc, char **argv) {
+
+    setup_defaults();
 
     char buff[64];
 
     strcpy(buff, "../");
+
+    if (strlen(argv[1]) > 60) {
+        fprintf(stderr, "error: filename too long\n");
+        return 1;
+    }
+
     strcat(buff, argv[1]);
 
     yyin = fopen(argv[1], "r");
 
     if (yyin == NULL) {
-        fprintf(stderr, "error opening instruction set file\n");
+        fprintf(stderr, "error opening isa file\n");
         exit(1);
     }
 
@@ -137,29 +150,65 @@ int main(int argc, char **argv) {
 
     fclose(yyin);
 
+    /* useful for testing 
+
     print_system_info();
 
     printf("%d\n", arena_pointer);
 
     printf("waiting on connection\n");
 
+    */
+
     int status;
+    struct in_msgbuf in;
 
+    /* wait on open connection, returns -1 if error other than unknown msg queue id */
     while ((status = open_connection()) == 1);
-
-    if (status == -1) {
-        printf("doom\n");
-        return 1;
-    }
-
-    printf("connection made\n");
+    if (status == -1) return 1;
+    
+    printf("interface connected\n");
 
     send_message("successfully connected to VM\n");
 
-    send_message("testing\n");
+    for (;;) {
+
+        if (receive_message(&in)) return 1;
+
+        if (handle_command(in.mtext) == 0) {
+            break;
+        }
+        
+    }
 
 
 }
 
+int handle_command(char *command) {
 
+    fprintf(stderr, "%s\n", command);
+    if (!strcmp(command, "quit")) return 0;
+    
+    char *mask = command;
 
+    while (*mask && *mask != ' ') mask++;
+    if (*mask != '\0') *mask = '\0';
+
+    if (!strcmp(command, "load")) {
+        if (run_load(mask + 1)) {
+            fprintf(stderr, "error opening load file.\n");
+            return -1;
+        }
+    }
+
+    return 1;
+}
+
+int run_load(char *filename) {
+
+    int fd = open(filename, O_RDONLY);
+    if (fd == -1) {
+        perror("open");
+        return 1;
+    }
+}

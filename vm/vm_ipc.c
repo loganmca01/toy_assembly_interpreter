@@ -5,18 +5,6 @@
 
 int msqid;
 
-#define IN_MAX 256
-#define OUT_MAX 1024
-
-struct in_msgbuf {
-    long mtype;
-    char mtext[IN_MAX];
-};
-
-struct out_msgbuf {
-    long mtype;
-    char mtext[OUT_MAX];
-};
 
 int open_connection() {
 
@@ -62,6 +50,32 @@ int send_message(char *data) {
 
 }
 
-char *receive_message() {
-    
+int receive_message(struct in_msgbuf *in) {
+
+    key_t key = ftok("..", 'A');
+
+    if (key == -1) {
+        perror("generating system v key");
+        return -1;
+    }
+
+    if (key == -1) {
+        perror("ftok");
+        return 1;
+    }
+
+    int msqid = msgget(key, 0666);
+
+    if (msqid == -1) {
+        perror("msgget");
+        return 1;
+    }
+
+    if (msgrcv(msqid, in, sizeof in->mtext, 2, 0) == -1) {
+        perror("msgrcv");
+        return 1;
+    }
+
+    return 0;
+
 }

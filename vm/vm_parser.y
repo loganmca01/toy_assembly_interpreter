@@ -4,8 +4,6 @@
 #include <stdint.h>
 
 int current_region = 0;
-int current_instruction = 0;
-
 
 %}
 
@@ -25,7 +23,6 @@ int current_instruction = 0;
 
 %token <d> NUMBER
 %token <strval> NAME
-%token <c> CHAR
 %token NEWLINE
 
 %token SYSTEM_L
@@ -115,7 +112,6 @@ instruction:    COMMAND_NO_L NUMBER NEWLINE
                         i.args = $11;
                         i.actions = $13;
                         instructions[$8] = i;
-                        current_instruction++;
                     }
 ;
 

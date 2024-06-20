@@ -52,9 +52,25 @@ extern int yylineno;
 extern int yyparse(void);
 void yyerror(char* s, ...);
 
-/* ipc functions */
+/* ipc functions and structs */
+
+#define IN_MAX 256
+#define OUT_MAX 1024
+
+struct in_msgbuf {
+    long mtype;
+    char mtext[IN_MAX];
+};
+
+struct out_msgbuf {
+    long mtype;
+    char mtext[OUT_MAX];
+};
+
 int open_connection();
 int send_message(char *data);
-char *receive_message();
+int receive_message(struct in_msgbuf *in);
 
 /* VM functions */
+int handle_command(char *command);
+int run_load(char *filename);
