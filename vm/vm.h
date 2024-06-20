@@ -74,3 +74,5 @@ int receive_message(struct in_msgbuf *in);
 /* VM functions */
 int handle_command(char *command);
 int run_load(char *filename);
+int run_step();
+int run_query(char *args);

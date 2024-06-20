@@ -2,6 +2,7 @@
 
 #include "vm.h"
 #include <stdint.h>
+#include <stdlib.h>
 
 int current_region = 0;
 
@@ -70,7 +71,7 @@ register_name: NUMBER ',' NAME NEWLINE          { registers[$1].name = $3; sys_i
 ;
 
 memory_info: MEMORY_SIZE_L NUMBER NEWLINE
-             NUMBER_OF_REGIONS_L NUMBER NEWLINE { sys_info.mem_size = $2; sys_info.num_regions = $5; sys_info.mem_regions = arena_allocate(sizeof (struct memory_region) * $5); }
+             NUMBER_OF_REGIONS_L NUMBER NEWLINE { sys_info.mem_size = $2; memory = arena_allocate(sizeof (uint8_t) * $2); sys_info.num_regions = $5; sys_info.mem_regions = arena_allocate(sizeof (struct memory_region) * $5); }
 ;
 
 memory_regions: MEMORY_REGIONS_L memory_region_list NEWLINE                 {}

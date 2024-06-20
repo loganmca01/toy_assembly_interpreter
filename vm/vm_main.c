@@ -4,6 +4,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <fcntl.h>
+#include <unistd.h>
 
 struct symbol *registers;
 struct symbol PC;
@@ -175,14 +176,18 @@ int main(int argc, char **argv) {
 
         if (receive_message(&in)) return 1;
 
+        int res;
+
         if (handle_command(in.mtext) == 0) {
+            free(arena);
             break;
         }
         
     }
 
-
 }
+
+/* TODO: decide on how to handle error messages, should it always just send_message instead of printing in VM */
 
 int handle_command(char *command) {
 
@@ -194,11 +199,23 @@ int handle_command(char *command) {
     while (*mask && *mask != ' ') mask++;
     if (*mask != '\0') *mask = '\0';
 
+    /* compare string to each possible command, pass args to appropriate function */
     if (!strcmp(command, "load")) {
         if (run_load(mask + 1)) {
-            fprintf(stderr, "error opening load file.\n");
+            send_message("load failed, see vm for error message");
             return -1;
         }
+    }
+    else if (!strcmp(command, "query")) {
+
+    }
+    else if (!strcmp(command, "step")) {
+        if (run_step()) {
+
+        }
+    }
+    else {
+        send_message("invalid command, type help to see available commands");
     }
 
     return 1;
@@ -211,4 +228,53 @@ int run_load(char *filename) {
         perror("open");
         return 1;
     }
+
+    int ptr = PC.value;
+    int check;
+
+    /* read byte by byte until end of file */
+    while ((check = read(fd, &memory[ptr++], 1)) != 0) {
+        if (ptr > sys_info.mem_size) {
+            fprintf(stderr, "error: attempted to load outside of valid memory");
+            return 1;
+        }
+        else if (check == -1) {
+            perror("read");
+            return 1;
+        }
+    }
+
+    if (close(fd) == -1) {
+        perror("close");
+        return 1;
+    }
+
+    send_message("successful load");
+
+    return 0;
+
+}
+
+int run_step() {
+
+    uint8_t ir[16];
+
+    if (PC.value + 2 > sys_info.mem_size) {
+        fprintf(stderr, "error: trying to run instruction outside of memory bounds\n");
+        return 1;
+    }
+
+    ir[0] = memory[PC.value++];
+    ir[1] = memory[PC.value++];
+
+    int op1_type = ir[1] & 0xF0 >> 4;
+    int op2_type = ir[1] & 0x0F;
+
+    
+
+
+}
+
+int run_query(char *args) {
+
 }

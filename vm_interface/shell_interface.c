@@ -46,6 +46,8 @@ int main(void) {
 
     printf("%s", rec.mtext);
 
+    printf("> ");
+
     while(fgets(send.mtext, sizeof send.mtext, stdin) != NULL) {
         
         int len = strlen(send.mtext);
@@ -58,6 +60,16 @@ int main(void) {
         }
 
         if (!strcmp(send.mtext, "quit")) break;
+
+        if (msgrcv(msqid, &rec, sizeof rec.mtext, 0, 0) == -1) {
+            perror("msgrcv");
+            msgctl(msqid, IPC_RMID, NULL);
+            return 1;
+        }
+
+        printf("%s\n", rec.mtext);
+
+        printf("> ");
 
     }
 
