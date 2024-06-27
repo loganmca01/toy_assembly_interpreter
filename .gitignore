@@ -3,7 +3,11 @@
 *.tab.h
 *.lex.c
 lex.yy.c
+
+# executables
 isa_interpreter
+vm_gen
+vm-interface
 
 # isa files
 *.isa
