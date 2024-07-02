@@ -67,6 +67,26 @@ struct out_msgbuf {
     char mtext[OUT_MAX];
 };
 
+/* TODO: set and enforce actual maximums on memory and registers earlier on in system def */
+#define MAX_REGS 32
+#define MAX_MEM 16384
+
+struct reg_msgbuf {
+    long mtype;
+    struct reg_data {
+        int size;
+        struct symbol regbuff[MAX_REGS];
+    }
+}
+
+struct mem_msgbuf {
+    long mtype;
+    struct mem_data {
+        int size;
+        uint8_t data[MAX_MEM];
+    }
+}
+
 int open_connection();
 int send_message(char *data);
 int receive_message(struct in_msgbuf *in);

@@ -33,7 +33,6 @@ void unix_error(char *msg);
 
 int main(void) {
 
-    struct out_msgbuf rec;
     struct in_msgbuf send;
 
     Signal(SIGINT, sigint_handler);
@@ -78,7 +77,24 @@ int main(void) {
             return 1;
         }
 
-        if (!strcmp(send.mtext, "quit")) break;
+        if (handle_response(send.mtext) == 1) break;
+
+        printf("> ");
+
+    }
+
+    msgctl(msqid, IPC_RMID, NULL);
+
+
+}
+
+int handle_response(char *sent) {
+
+    if (!strncmp(sent, "quit", 4)) return 1;
+
+    if (strncmp(sent, "query", 5) || (sent[6] != ' ' && sent[6] != '\0')) {
+        
+        struct out_msgbuf rec;
 
         if (msgrcv(msqid, &rec, sizeof rec.mtext, 1, 0) == -1) {
             perror("msgrcv");
@@ -87,13 +103,11 @@ int main(void) {
         }
 
         printf("%s\n", rec.mtext);
-
-        printf("> ");
-
     }
 
-    msgctl(msqid, IPC_RMID, NULL);
+    
 
+    return 0;
 
 }
 

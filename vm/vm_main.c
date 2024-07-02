@@ -192,7 +192,7 @@ int main(int argc, char **argv) {
 int handle_command(char *command) {
 
     fprintf(stderr, "%s\n", command);
-    if (!strcmp(command, "quit")) return 0;
+    if (!strncmp(command, "quit", 4)) return 0;
     
     char *mask = command;
 
@@ -207,7 +207,9 @@ int handle_command(char *command) {
         }
     }
     else if (!strcmp(command, "query")) {
+        if (run_query(mask + 1)) {
 
+        }
     }
     else if (!strcmp(command, "step")) {
         if (run_step()) {
