@@ -1,0 +1,51 @@
+(register names to be added)
+
+
+
+base-unit-width: 8 (bits)
+minimum-parcel: 4 (full instruction)
+decode-type: 2 (1: variant decided by opcode, 2: decode variant to find opcode)
+decode-start: base.Spec
+
+(variants)
+base [size = 4] {
+    NULL = 4;
+    Spec = 2;
+    NULL = 25;
+}
+
+Data_Processing_Register_Transfer {
+    Cond = 3;
+    Spec = 2 = 0b00;
+    I = 1;
+    Opcode = 4;
+    S = 1;
+    Rn = 4;
+    Rd = 4;
+    Operand2 = 12;
+}
+
+Multiply {
+    Cond = 3;
+    Spec = 6 = 0b000000;
+    A = 1;
+    S = 1;
+    Rd = 4;
+    Rn = 4;
+    Rs = 4;
+    Spec2 = 4 = 0b1001;
+    Rm = 4;
+}
+
+Multiply_Long {
+    Cond = 3;
+    Spec = 5 = 0b00001;
+    U = 1;
+    A = 1;
+    S = 1;
+    RdHi = 4;
+    RdHl = 4;
+    Rn = 4;
+    Spec2 = 4 = 0b1001;
+    Rm = 4;
+}

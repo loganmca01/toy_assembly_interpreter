@@ -1,0 +1,83 @@
+(register names to be added)
+
+base-unit-width: 8 (bits)
+minimum-parcel: 4 (full instruction)
+decode-type: 1 (1: variant decided by opcode, 2: decode variant to find opcode)
+decode-start: base.opcode
+
+(variants)
+base {
+    NULL = 25;
+    opcode = 7;
+}
+
+R-type {
+    funct7 = 7;
+    rs2 = 5;
+    rs1 = 5;
+    funct3 = 3;
+    rd = 5;
+    opcode = 7;
+}
+
+I-type {
+    imm = 12;
+    rs1 = 5;
+    funct3 = 3;
+    rd = 5;
+    opcode = 7;
+}
+
+S-type {
+    imm1 = 7;
+    rs2 = 5;
+    rs1 = 5;
+    funct3 = 3;
+    imm2 = 5;
+    opcode = 7;
+}
+
+B-type {
+    imm1 = 1;
+    imm2 = 6;
+    rs2 = 5;
+    rs1 = 5;
+    funct3 = 3;
+    imm4 = 4;
+    imm4 = 1;
+    opcode = 7;
+}
+
+U-type {
+    imm = 20;
+    rd = 5;
+    opcode = 7;
+}
+
+J-type {
+    imm1 = 1;
+    imm2 = 10;
+    imm3 = 1;
+    imm4 = 8;
+    rd = 5;
+    opcode = 7;
+}
+
+define OP-IMM:
+encoding {
+    base.opcode == 0b0010011;
+    variant = I-type;
+}
+function {
+    
+}
+
+define ADDI:
+
+encoding {
+    base.opcode == 0b0010011;
+    I-type.funct3 == 0x0;
+}
+function {
+    R[rd] := R[rs1] + I[imm];
+}

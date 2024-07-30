@@ -1,0 +1,69 @@
+(register names to be added)
+
+base-unit-width: 8 (bits)
+minimum-parcel: 4 (full instruction)
+decode-type: 1 (1: variant decided by opcode, 2: decode variant to find opcode)
+decode-start: base.opcode
+
+(variants)
+base {
+    opcode = 11;
+    NULL = 21;
+}
+
+R {
+    opcode = 11;
+    Rm = 5;
+    shamt = 6;
+    Rn = 5;
+    Rd = 5;
+}
+
+I {
+    opcode = 10;
+    ALU_immediate = 12;
+    Rn = 5;
+    Rd = 5;
+}
+
+D {
+    opcode = 11;
+    DT_address = 9;
+    op = 2;
+    Rn = 5;
+    Rt = 5;
+}
+
+B {
+    opcode = 6;
+    BR_address = 26;
+}
+
+CB {
+    opcode = 8;
+    COND_BR_address = 19;
+    Rt = 5;
+}
+
+IW {
+    opcode = 11;
+    MOD_immediate = 16;
+    Rd = 5;
+}
+
+define ADD:
+encoding {
+    opcode = 0x458;
+    variant = R;
+}
+function {
+    R[rd] := R[Rn] + R[Rm];
+}
+
+define ADDI {
+    opcode = 0x488-0x489; (not sure how I'll handle opcode range yet)
+    variant = I;
+}
+function {
+    R[Rd] := R[Rn] + ALU_immediate;
+}

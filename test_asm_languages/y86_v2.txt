@@ -1,0 +1,52 @@
+%rax = R[0]
+%rcx = R[1]
+%rdx = R[2]
+%rbx = R[3]
+%rsp = R[4]
+%rbp = R[5]
+%rsi = R[6]
+%rdi = R[7]
+%r8 = R[8]
+%r9 = R[9]
+%r10 = R[10]
+%r11 = R[11]
+%r12 = R[12]
+%r13 = R[13]
+%r14 = R[14]
+
+(parentheses are notes, will be removed)
+
+(attributes, first 2 required)
+base-unit-width: 8 (bits)
+minimum-parcel: 1 (base unit(s))
+single-variant: 1 (if true, variant-specifier is not needed)
+decode-type: 1 (1: variant decided by opcode, 2: decode variant to find opcode)
+decode-start: main.instruction_specifier.
+(variants)
+main {
+    instruction_specifier [size = 1] {
+        instruction_type = 4
+        instruction_function = 4
+    }
+    register_specifier [size = 0,1] {
+        rega = 4
+        regb = 4
+    }
+    constant_word [size = 0,4]
+}
+
+define rrmovq rA, rB:
+encoding {
+    opcode == 0x20;
+    variant = main;
+
+    register_specifier.size = 1;
+    rA = register_specifier.rega;
+    rB = register_specifier.regb;
+
+    constant_word.size = 0;
+}
+function {
+    R[rA] := R[rB];
+}
+
