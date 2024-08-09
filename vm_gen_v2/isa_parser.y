@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "isa.h"
+#include <errno.h>
 
 %}
 
@@ -23,8 +24,9 @@
 %token <strval> NAME
 %token <s> ARG_SYMBOL
 %token NEWLINE
-%token DEFINE_L ENCODING_L FUNCTION_L FIXED_L;
-%token <d> REG CC
+%token DEFINE_L ENCODING_L FUNCTION_L FIXED_L SYSTEM_L LANGUAGE_L NAMED_HARDWARE_L;
+%token <d> ATTRIBUTE_L
+%token <strval> REG CC
 
 %nonassoc COND
 %right ASSIGN LOG
@@ -35,19 +37,11 @@
 %left '+' '-'
 %left '*' '/'
 
-%type <a> exp conditional action memory
-%type <s> symbol
-%type <sl> arg_list
-%type <al> action_list
 
 %start system
 %%
 
-system: named_reg_list opt_linebreak 
-        named_condition_code_list opt_linebreak
-        attribute_list opt_linebreak
-        variant_list opt_linebreak
-        instruction_list opt_linebreak              {}
+system: attribute_list                              {  }
 ;
 
 linebreak: NEWLINE                                  {}
@@ -58,90 +52,36 @@ opt_linebreak: /* */                                {}
             |  linebreak                            {}
 ;
 
-named_reg:  NAME '=' REG                            {}
+attribute_list: attribute opt_linebreak             {  }
+    |       attribute_list attribute opt_linebreak  {  }
 ;
 
-named_reg_list: /* */                               {}
-            |   named_reg_list named_reg linebreak  {}
+attribute: ATTRIBUTE_L ':' NUMBER linebreak                         { if ($1 == 7) {yyerror("attribute value must be a string"); YYERROR;} if (handle_attribute($1, &$3)) YYERROR; }
+        |  ATTRIBUTE_L ':' NAME linebreak                           { if ($1 == 7) {yyerror("attribute value must be a number"); YYERROR;} if (handle_attribute($1, &$3)) YYERROR; }
+        |  NAMED_HARDWARE_L ':' opt_linebreak named_hardware_list   {  }
 ;
 
-named_condition_code:  NAME '=' CC                                         {}
+named_hardware_list: named_hardware                         { if (!((attribute_tracker & NUMBER_OF_REGISTERS_M) && (attribute_tracker && NUMBER_OF_CONDITION_CODES_M))) yyerror("must set number of registers and condition codes before naming them"); }
+                |    named_hardware_list named_hardware     {}
 ;
 
-named_condition_code_list: /* */                                            {}
-            |   named_condition_code_list named_condition_code linebreak    {}
-;
-
-    /* todo : check that values make sense */
-attribute: NAME ':' NUMBER              
-{
-    if (!strcmp($1, "base-unit-width")) {
-        base-unit-width = $3;
-    }
-    else if (!strcmp($1, "minimum-decode")) {
-        minimum-decode = $3;
-    }
-    else if (!strcmp($1, "single-variant")) {
-        single-variant = $3;
-    }
-    else if (!strcmp($1, "decode-type")) {
-        decode-type = $3;
-    }
-    else if (!strcmp($1, "single-parcel")) {
-        single-parcel = $3;
-    }
-    else {
-        yyerror("invalid attribute name %s", $1);
-    }
-}
-       |   NAME ':' NAME                
-{
-    if (!strcmp($1, "decode-start")) {
-        decode-start = $3;
-    }
-    else {
-        /* TODO : fix so that it differentiates between invalid name and invalid format */
-        yyerror("invalid attribute name")
-    }
-}
-;
-
-    /* todo, check that all required attributes are stated */
-attribute_list: /* */                               {}
-            | attribute_list attribute linebreak    {}
-;
-
-variant_list: /* "fixed" keyword for decode-type 2, requires bit values after length */    {}
-            | variant_list variant linebreak        {}
-;
-
-variant: encoding_list                              {}
-    |    parcel_list                                {}
-
-encoding_list: encoding                 {}
-            | encoding_list encoding    {}
-
-parcel_list: parcel                     {}
-        |    parcel_list parcel         {}
-
-encoding: NAME '=' NUMBER                   {}
-        | FIXED_L '=' NUMBER '=' NUMBER     {}
-
-parcel:
-
-instruction_list: /* nothing */                     { command_no = 1; }
-    | instruction_list instruction linebreak        { command_no++; }
-    | instruction_list instruction                  { command_no++; }
-    | instruction_list error linebreak              {}
-;
-
-instruction: DEFINE_L NAME linebreak encoding_block linebreak function_block    {}
-;
-
-encoding_block: ENCODING_L opt_linebreak '{' decoding_list '}'            {}
-;
-
-decoding_list:
-
-function_block: FUNCTION_L opt_linebreak '{' action_list '}'              {}
-
+named_hardware: REG '=' NAME linebreak         
+                {
+                    int num;
+                    if (((!(num = atoi($1))) && strcmp($1, "0")) || num < 0 || num >= number_of_registers) {
+                        //fprintf(stderr, "test");
+                        yyerror("invalid register number in named hardware list %s", $1);
+                        YYERROR;
+                    }
+                    else hw_names[num] = $3;
+                }
+            |   CC '=' NAME linebreak       
+                {
+                    int num;
+                    if (((!(num = atoi($1))) && strcmp($1, "0")) || num < 0 || num >= number_of_condition_codes) {
+                        //printf("%d\n", num);
+                        yyerror("invalid cc number in named hardware list");
+                        YYERROR;
+                    }
+                    else hw_names[num + number_of_registers] = $3;
+                }

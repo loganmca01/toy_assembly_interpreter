@@ -1,0 +1,55 @@
+register_size: 64
+number_of_registers: 15
+number_of_condition_codes: 3
+memory_size: 8192
+named_hardware:
+R[0] = %rax
+R[1] = %rcx
+R[2] = %rdx
+R[3] = %rbx
+R[4] = %rsp
+R[5] = %rbp
+R[6] = %rsi
+R[7] = %rdi
+R[8] = %r8
+R[9] = %r9
+R[10] = %r10
+R[11] = %r11
+R[12] = %r12
+R[13] = %r13
+R[14] = %r14
+S[0] = ZF
+S[1] = SF
+S[2] = OF
+base_unit: 8
+instruction_type: 2
+
+FORMATS
+main {
+    instruction_specifier [size = 1] {
+        instruction_type = 4
+        instruction_function = 4
+    }
+    register_specifier [size = 0,1] {
+        rega = 4
+        regb = 4
+    }
+    constant_word [size = 0,4]
+}
+
+INSTRUCTIONS
+
+define rrmovq rA, rB:
+encoding {
+    instruction_type == 0x2;
+    instruction_function == 0x0;
+
+    register_specifier.size = 1;
+    rA = register_specifier.rega;
+    rB = register_specifier.regb;
+
+    constant_word.size = 0;
+}
+function {
+    R[rA] := R[rB];
+}

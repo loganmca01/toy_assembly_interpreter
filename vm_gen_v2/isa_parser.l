@@ -2,7 +2,7 @@
 
 %{
 #include "isa.h"
-#include "isa.tab.h"
+#include "isa_parser.tab.h"
 %}
 
 %%
@@ -22,6 +22,7 @@
 "[" |
 "]" |
 "," |
+":" |
 ";"         { return yytext[0]; }
 
 ">"         { yylval.c = '1'; return CMP; }
@@ -35,35 +36,45 @@
 
 ":="       { return ASSIGN; }
 
-":"        { return COND; }
 
+    /* labels for attributes and other keywords */
 (?i:define)                         { return DEFINE_L; }
-(?i:encoding)                       { return ECONDING_L; }
+(?i:encoding)                       { return ENCODING_L; }
 (?i:function)                       { return FUNCTION_L; }
 (?i:fixed)                          { return FIXED_L; }
+"SYSTEM-ATTRIBUTES"                 { return SYSTEM_L; }
+"LANGUAGE-ATTRIBUTES"               { return LANGUAGE_L; }
+"register_size"                  { yylval.d = 0; return ATTRIBUTE_L; }
+"number_of_registers"            { yylval.d = 1; return ATTRIBUTE_L; }
+"number_of_condition_codes"      { yylval.d = 2; return ATTRIBUTE_L; }
+"memory_size"                    { yylval.d = 3; return ATTRIBUTE_L; }
+"base_unit"                      { yylval.d = 4; return ATTRIBUTE_L; }
+"instruction_type"               { yylval.d = 5; return ATTRIBUTE_L; }
+"decode_type"                    { yylval.d = 6; return ATTRIBUTE_L; }
+"decode_start"                   { yylval.d = 7; return ATTRIBUTE_L; }
+"instruction_length"             { yylval.d = 8; return ATTRIBUTE_L; }
+
+
+(?i:named_hardware)                 { return NAMED_HARDWARE_L; }
+
 
 S\[[0-9]+\]                         {
-                                        /* TODO */
+                                        yylval.strval = strndup((yytext + 2), (strlen(yytext) - 2));
+                                        yylval.strval[strlen(yylval.strval) - 1] = '\0';
                                         return CC;
                                     }
 
 R\[[0-9]+\]                         { 
-                                        int sum = 0;
-                                        for (int i = 2; yytext[i] != ']'; i++) {                                        
-                                            sum *= 10 * (i - 2);
-                                            sum += yytext[i] - '0';
-                                        }
-                                        if (sum < 0 || sum >= sys_info.num_regs)
-                                            yyerror("named register out of bounds");
-                                        else {
-                                            yylval.d = sum;
-                                            return REG;
-                                        }
+                                        //fprintf(stderr, "%s %s\n", yytext, yytext+2);
+                                        yylval.strval = strndup((yytext + 2), (strlen(yytext) - 2));
+                                        yylval.strval[strlen(yylval.strval) - 1] = '\0';
+                                        return REG;
                                     }
 
 [a-zA-Z%][a-zA-Z0-9\.]*   {
 
                 yylval.strval = strdup(yytext);
+                //printf("%s\n", yytext);
                 return NAME;
             }
 
