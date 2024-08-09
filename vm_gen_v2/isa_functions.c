@@ -208,6 +208,48 @@ void print_attributes() {
     }
 }
 
+int verify_attribute_cover() {
+    if (!(attribute_tracker & REGISTER_SIZE_M)) {
+        yyerror("missing register_size attribute");
+        return 1;
+    } 
+    else if (!(attribute_tracker & NUMBER_OF_REGISTERS_M)) {
+        yyerror("missing number_of_registers attribute");
+        return 1;
+    }
+    else if (!(attribute_tracker & NUMBER_OF_CONDITION_CODES_M)) {
+        yyerror("missing number_of_condition_codes attribute");
+        return 1;
+    }
+    else if (!(attribute_tracker & MEMORY_SIZE_M)) {
+        yyerror("missing memory_size attribute");
+        return 1;
+    }
+    else if (!(attribute_tracker & BASE_UNIT_M)) {
+        yyerror("missing base_unit attribute");
+        return 1;
+    }
+    else if (!(attribute_tracker & INSTRUCTION_TYPE_M)) {
+        yyerror("missing instruction_type attribute");
+        return 1;
+    }
+    else if (!(attribute_tracker & DECODE_TYPE_M) && (instruction_type == 1)) {
+        yyerror("missing decode_type attribute (necessary for fixed width instruction sets)");
+        return 1;
+    }
+    else if (!(attribute_tracker & DECODE_START_M) && (instruction_type == 1) && (decode_type == 1)) {
+        yyerror("missing decode_start attribute (necessary for fixed width instruction sets of decode type 1)");
+        return 1;
+    }
+    else if (!(attribute_tracker & DECODE_TYPE_M) && (instruction_type == 1)) {
+        yyerror("missing instruction_length attribute (necessary for fixed width instruction sets)");
+        return 1;
+    }
+    else return 0;
+}
+
+void **formats;
+
 void yyerror(char *s, ...) {
     va_list ap;
     va_start(ap, s);

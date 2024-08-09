@@ -24,7 +24,7 @@
 %token <strval> NAME
 %token <s> ARG_SYMBOL
 %token NEWLINE
-%token DEFINE_L ENCODING_L FUNCTION_L FIXED_L SYSTEM_L LANGUAGE_L NAMED_HARDWARE_L;
+%token DEFINE_L FORMATS_L SIZE_L ENCODING_L FUNCTION_L FIXED_L SYSTEM_L LANGUAGE_L NAMED_HARDWARE_L;
 %token <d> ATTRIBUTE_L
 %token <strval> REG CC
 
@@ -37,11 +37,12 @@
 %left '+' '-'
 %left '*' '/'
 
-
 %start system
 %%
 
-system: attribute_list                              {  }
+system: attributes                              
+        FORMATS_L linebreak format_list
+                {  }
 ;
 
 linebreak: NEWLINE                                  {}
@@ -51,6 +52,8 @@ linebreak: NEWLINE                                  {}
 opt_linebreak: /* */                                {}
             |  linebreak                            {}
 ;
+
+attributes: attribute_list                          { if (verify_attribute_cover())  YYERROR; }
 
 attribute_list: attribute opt_linebreak             {  }
     |       attribute_list attribute opt_linebreak  {  }
@@ -85,3 +88,28 @@ named_hardware: REG '=' NAME linebreak
                     }
                     else hw_names[num + number_of_registers] = $3;
                 }
+;
+
+format_list: format linebreak               {}
+        |    format_list format linebreak   {}
+;
+
+format: parcel_list                         {  }
+    |   encoding_list                       {  }
+;
+
+parcel_list: parcel                                 {}
+        |    parcel_list linebreak parcel           {}
+;
+
+/* TODO: check parcel size options, different types of parcels */
+parcel: NAME '[' SIZE_L '=' num_list ']'
+;
+
+
+num_list: NUMBER                {}
+|         num_list ',' NUMBER   {}
+;
+
+encoding_list:
+;

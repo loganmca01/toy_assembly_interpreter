@@ -39,20 +39,22 @@
 
     /* labels for attributes and other keywords */
 (?i:define)                         { return DEFINE_L; }
+(?i:formats)                        { return FORMATS_L; }
 (?i:encoding)                       { return ENCODING_L; }
 (?i:function)                       { return FUNCTION_L; }
 (?i:fixed)                          { return FIXED_L; }
+(?i:size)                           { return SIZE_L; }
 "SYSTEM-ATTRIBUTES"                 { return SYSTEM_L; }
 "LANGUAGE-ATTRIBUTES"               { return LANGUAGE_L; }
-"register_size"                  { yylval.d = 0; return ATTRIBUTE_L; }
-"number_of_registers"            { yylval.d = 1; return ATTRIBUTE_L; }
-"number_of_condition_codes"      { yylval.d = 2; return ATTRIBUTE_L; }
-"memory_size"                    { yylval.d = 3; return ATTRIBUTE_L; }
-"base_unit"                      { yylval.d = 4; return ATTRIBUTE_L; }
-"instruction_type"               { yylval.d = 5; return ATTRIBUTE_L; }
-"decode_type"                    { yylval.d = 6; return ATTRIBUTE_L; }
-"decode_start"                   { yylval.d = 7; return ATTRIBUTE_L; }
-"instruction_length"             { yylval.d = 8; return ATTRIBUTE_L; }
+"register_size"                     { yylval.d = 0; return ATTRIBUTE_L; }
+"number_of_registers"               { yylval.d = 1; return ATTRIBUTE_L; }
+"number_of_condition_codes"         { yylval.d = 2; return ATTRIBUTE_L; }
+"memory_size"                       { yylval.d = 3; return ATTRIBUTE_L; }
+"base_unit"                         { yylval.d = 4; return ATTRIBUTE_L; }
+"instruction_type"                  { yylval.d = 5; return ATTRIBUTE_L; }
+"decode_type"                       { yylval.d = 6; return ATTRIBUTE_L; }
+"decode_start"                      { yylval.d = 7; return ATTRIBUTE_L; }
+"instruction_length"                { yylval.d = 8; return ATTRIBUTE_L; }
 
 
 (?i:named_hardware)                 { return NAMED_HARDWARE_L; }

@@ -31,13 +31,16 @@ extern int attribute_tracker;
 
 int handle_attribute(int a_num, void *val);
 void print_attributes();
+int verify_attribute_cover();
 
+/* format buffer, casted to appropriate pointer type based on instruction_type */
+extern void **formats;
 
-struct variant_parcel {
+struct format_var {
     struct parcel_list *pl;
 };
 
-struct variant_noparcel {
+struct format_fixed {
     struct encoding_list *el;
 };
 
