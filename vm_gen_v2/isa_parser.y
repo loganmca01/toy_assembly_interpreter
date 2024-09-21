@@ -94,8 +94,21 @@ format_list: format linebreak               {}
         |    format_list format linebreak   {}
 ;
 
-format: parcel_list                         {  }
-    |   encoding_list                       {  }
+format: parcel_list                         
+{ 
+    if (instruction_type != 1) {
+        yyerror("invalid use of parcels in format definition for fixed-length instructions");
+        YYERROR;
+    }
+
+}
+    |   encoding_list                       
+{  
+    if (instruction_type != 2) {
+        yyerror("outermost memory designations in format must be parcels, not encodings");
+        YYERROR;
+    }
+}
 ;
 
 parcel_list: parcel                                 {}
@@ -106,10 +119,13 @@ parcel_list: parcel                                 {}
 parcel: NAME '[' SIZE_L '=' num_list ']'
 ;
 
-
 num_list: NUMBER                {}
-|         num_list ',' NUMBER   {}
+        | num_list ',' NUMBER   {}
 ;
 
-encoding_list:
+encoding_list: encoding                             {}
+        |      encoding_list linebreak encoding     {}
+;
+
+encoding: NAME '=' NUMBER               {}
 ;

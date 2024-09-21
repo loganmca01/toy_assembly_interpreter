@@ -55,8 +55,13 @@ struct encoding_list {
 };
 
 struct parcel {
+    /*
+    * 1 - fixed size, non-optional parcel
+    * 2 - fixed size, optional parcel
+    * 3 - variable sized block, no encodings
+    */
     int type;
-    
+    int *sizes;
 };
 
 struct encoding {
